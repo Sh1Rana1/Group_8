@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoltDorm 智慧宿舍用电管理系统 · 交互原型</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- ========================================== -->
+  <!-- 顶栏：全局系统层 (系统 Brand / 角色切换器 / 通知微件) -->
+  <!-- ========================================== -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-2xs">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      
+      <!-- Logo 与系统标题 -->
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div>
+          <span class="font-bold text-slate-900 leading-none block">VoltDorm OS</span>
+          <span class="text-2xs text-slate-400">高校宿舍用电与能耗平衡系统</span>
+        </div>
+      </div>
+
+      <!-- 核心视角/角色切换器 (双角色隔离体验) -->
+      <div class="bg-slate-100 p-1 rounded-xl flex items-center space-x-1 border border-slate-200">
+        <button id="roleAdminBtn" onclick="switchRole('admin')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-white text-indigo-600 shadow-2xs">
+          <span>👨‍💼 管理员视图</span>
+        </button>
+        <button id="roleUserBtn" onclick="window.location.href='student.html'" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 transition flex items-center space-x-1.5">
+          <span>🧑‍🎓 学生/住户端</span>
+        </button>
+      </div>
+
+      <!-- 顶栏右侧：缩小图标套件 (通知缩小图标 + 快捷入口) -->
+      <div class="flex items-center space-x-3">
+        <!-- 原图：通知视图缩小图标 -->
+        <div class="relative">
+          <button onclick="toggleNoticeDrawer()" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition relative">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span id="noticeBadge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
+          </button>
+        </div>
+        <div class="h-4 w-px bg-slate-200"></div>
+        <!-- 管理员信息 -->
+        <div class="flex items-center space-x-2 text-xs">
+          <div class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600" id="avatarBox">管</div>
+          <span class="font-medium text-slate-700" id="userNameLabel">宿管总控制台</span>
+          <button onclick="logoutAdmin()" class="text-2xs text-slate-400 hover:text-rose-500 ml-1">退出</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 管理员子导航 Tab (切换 A1, A2, A3) -->
+    <div id="adminNavTabs" class="max-w-7xl mx-auto px-6 flex space-x-8 border-t border-slate-100 text-xs font-semibold text-slate-500">
+      <button onclick="switchAdminPage('workspace')" id="tabWorkspace" class="py-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+        <span>能耗总览</span>
+      </button>
+      <button onclick="switchAdminPage('meters')" id="tabMeters" class="py-3 border-b-2 border-transparent hover:text-slate-900 flex items-center space-x-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <span>电表管理</span>
+      </button>
+      <button onclick="switchAdminPage('water')" id="tabWater" class="py-3 border-b-2 border-transparent hover:text-slate-900 flex items-center space-x-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0011 0C17.5 9.7 12 3.5 12 3.5z"/></svg>
+        <span>用水管理</span>
+      </button>
+      <button onclick="switchAdminPage('users')" id="tabUsers" class="py-3 border-b-2 border-transparent hover:text-slate-900 flex items-center space-x-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span>用户与空间</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 核心主容器区 -->
+  <!-- ========================================== -->
+  <main class="max-w-7xl mx-auto px-6 py-6 flex-1 w-full">
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 页面 A1: 能耗总览 -->
+    <!-- ---------------------------------------------------- -->
+    <div id="pageAdminWorkspace" class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-semibold text-emerald-600">全校设备数据实时同步中</span>
+          </div>
+          <h2 class="text-2xl font-bold text-slate-900">校园能耗总览</h2>
+          <p class="text-xs text-slate-400 mt-1">更新时间：今日 14:32 · 统计范围：全部学生公寓</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="showToast('全校能耗报表已导出')" class="px-4 py-2 bg-white border border-slate-200 hover:border-indigo-300 text-slate-600 rounded-xl text-xs font-semibold transition">导出报表</button>
+          <button onclick="renderWorkspaceCanvas(); showToast('能耗数据已刷新')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-100 transition">刷新数据</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-2xl p-5 shadow-lg shadow-indigo-100">
+          <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full bg-white/10"></div>
+          <div class="flex justify-between items-start relative">
+            <div><p class="text-xs text-indigo-100">今日总用电量</p><p id="overviewElectricity" class="text-2xl font-bold mt-2">0.0 <span class="text-sm font-medium">kWh</span></p></div>
+            <span class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-xl">⚡</span>
+          </div>
+          <div class="mt-5 flex justify-between text-2xs text-indigo-100"><span>较昨日 <b class="text-emerald-300">↓ 3.2%</b></span><span>实时负荷 0.0 kW</span></div>
+        </div>
+        <div class="relative overflow-hidden bg-gradient-to-br from-cyan-500 to-sky-600 text-white rounded-2xl p-5 shadow-lg shadow-sky-100">
+          <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full bg-white/10"></div>
+          <div class="flex justify-between items-start relative">
+            <div><p class="text-xs text-sky-50">今日总用水量</p><p id="overviewWater" class="text-2xl font-bold mt-2">0.00 <span class="text-sm font-medium">m³</span></p></div>
+            <span class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-xl">💧</span>
+          </div>
+          <div class="mt-5 flex justify-between text-2xs text-sky-50"><span>较昨日 <b class="text-amber-200">↑ 1.8%</b></span><span>人均 0.00 L</span></div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+          <div class="flex justify-between items-start"><div><p class="text-xs text-slate-400">在线设备</p><p id="overviewDevices" class="text-2xl font-bold text-slate-900 mt-2">0 <span class="text-sm font-medium text-slate-400">台</span></p></div><span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">⌁</span></div>
+          <div class="mt-5 flex justify-between text-2xs"><span class="text-emerald-600 font-semibold">等待学生注册</span><span class="text-slate-400">0 台异常</span></div>
+        </div>
+        <div class="bg-white border border-rose-200 rounded-2xl p-5 shadow-2xs">
+          <div class="flex justify-between items-start"><div><p class="text-xs text-slate-400">待处理告警</p><p id="overviewAlerts" class="text-2xl font-bold text-rose-600 mt-2">0 <span class="text-sm font-medium text-slate-400">条</span></p></div><span class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg">!</span></div>
+          <div class="mt-5 flex justify-between text-2xs"><span class="text-rose-600 font-semibold">暂无告警</span><span class="text-slate-400">今日已处理 0 条</span></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex flex-wrap justify-between items-center gap-3">
+            <div><h3 class="text-sm font-bold text-slate-900">全校能耗统计报表</h3><p class="text-2xs text-slate-400 mt-1">近 7 日水电消耗趋势</p></div>
+            <div class="flex items-center gap-4 text-2xs text-slate-500"><span><i class="inline-block w-2 h-2 rounded-full bg-indigo-500 mr-1"></i>用电量</span><span><i class="inline-block w-2 h-2 rounded-full bg-sky-400 mr-1"></i>用水量</span><select class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5"><option>近 7 日</option><option>近 30 日</option></select></div>
+          </div>
+          <div class="p-5">
+            <div class="grid grid-cols-2 gap-4 mb-5"><div><span class="text-2xs text-slate-400">本周累计用电</span><p class="text-lg font-bold text-slate-800 mt-1">0.0 <span class="text-xs text-slate-400">kWh</span></p></div><div><span class="text-2xs text-slate-400">本周累计用水</span><p class="text-lg font-bold text-slate-800 mt-1">0.0 <span class="text-xs text-slate-400">m³</span></p></div></div>
+            <div class="relative h-52 border-l border-b border-slate-200 ml-8">
+              <div class="absolute inset-0 flex flex-col justify-between pointer-events-none"><i class="border-t border-dashed border-slate-100"></i><i class="border-t border-dashed border-slate-100"></i><i class="border-t border-dashed border-slate-100"></i><i class="border-t border-dashed border-slate-100"></i></div>
+              <div class="absolute inset-x-3 bottom-0 top-2 flex items-end justify-around gap-3">
+                <div class="h-full flex items-end gap-1"><i class="w-3 h-[68%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[45%] bg-sky-300 rounded-t"></i></div>
+                <div class="h-full flex items-end gap-1"><i class="w-3 h-[72%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[58%] bg-sky-300 rounded-t"></i></div>
+                <div class="h-full flex items-end gap-1"><i class="w-3 h-[59%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[62%] bg-sky-300 rounded-t"></i></div>
+                <div class="h-full flex items-end gap-1"><i class="w-3 h-[81%] bg-indigo-500 rounded-t"></i><i class="w-3 h-[49%] bg-sky-300 rounded-t"></i></div>
+                <div class="h-full flex items-end gap-1"><i class="w-3 h-[74%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[67%] bg-sky-400 rounded-t"></i></div>
+                <div class="h-full flex items-end gap-1"><i class="w-3 h-[66%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[55%] bg-sky-300 rounded-t"></i></div>
+                <div class="h-full flex items-end gap-1"><i class="w-3 h-[77%] bg-indigo-600 rounded-t"></i><i class="w-3 h-[64%] bg-sky-500 rounded-t"></i></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-7 ml-8 mt-2 text-center text-3xs text-slate-400"><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span><span>周一</span><span>今日</span></div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex justify-between items-center"><div><h3 class="text-sm font-bold text-slate-900">待处理告警</h3><p class="text-2xs text-slate-400 mt-1">按风险等级排列</p></div><span class="px-2 py-1 rounded-full bg-rose-50 text-rose-600 text-2xs font-bold">0 条待处理</span></div>
+          <div class="p-4 space-y-2" id="canvasAlertList"></div>
+          <div class="px-5 py-3 border-t border-slate-100 text-center"><button onclick="toggleNoticeDrawer()" class="text-xs text-indigo-600 font-semibold hover:text-indigo-700">查看全部告警 →</button></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl p-4"><div class="flex justify-between text-xs"><span class="font-semibold text-slate-700">学生公寓在线电表</span><b class="text-emerald-600">0 / 0</b></div><div class="w-full h-2 bg-slate-100 rounded-full mt-3 overflow-hidden"><i class="block h-full w-[99.4%] bg-emerald-500 rounded-full"></i></div></div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4"><div class="flex justify-between text-xs"><span class="font-semibold text-slate-700">在线饮水机</span><b class="text-sky-600">0 / 0</b></div><div class="w-full h-2 bg-slate-100 rounded-full mt-3 overflow-hidden"><i class="block h-full w-[98.1%] bg-sky-500 rounded-full"></i></div></div>
+        <div class="bg-white border border-slate-200 rounded-xl p-4"><div class="flex justify-between text-xs"><span class="font-semibold text-slate-700">欠费停电宿舍</span><b class="text-amber-600">0 间</b></div><div class="w-full h-2 bg-slate-100 rounded-full mt-3 overflow-hidden"><i class="block h-full w-[14%] bg-amber-400 rounded-full"></i></div></div>
+      </div>
+      <div id="dormHeatmapMini" class="hidden"></div>
+      <div id="canvasSlots" class="hidden"></div>
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 页面 A2: 电表管理 -->
+    <!-- ---------------------------------------------------- -->
+    <div id="pageAdminDorms" class="hidden space-y-5">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div><div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-xs font-semibold text-emerald-600">NB-IoT 电表实时在线</span></div><h2 class="text-2xl font-bold text-slate-900">电表管理</h2><p class="text-xs text-slate-400 mt-1">实时查询、预付费余额监控与远程通断电控制</p></div>
+        <div class="flex gap-2"><button onclick="showToast('电表台账已导出')" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600">导出设备</button><button onclick="renderMeterPage(); showToast('电表状态已同步')" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-100">同步设备</button></div>
+      </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs text-slate-400">电表总数</p><div class="flex justify-between items-end mt-2"><b id="meterCount" class="text-2xl text-slate-900">0 <small class="text-xs text-slate-400">台</small></b><span class="text-2xs text-emerald-600">等待注册</span></div></div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs text-slate-400">当前总负荷</p><div class="flex justify-between items-end mt-2"><b class="text-2xl text-slate-900">0.0 <small class="text-xs text-slate-400">kW</small></b><span class="text-2xs text-emerald-600">运行平稳</span></div></div>
+        <div class="bg-white border border-amber-200 rounded-2xl p-5"><p class="text-xs text-slate-400">余额预警</p><div class="flex justify-between items-end mt-2"><b class="text-2xl text-amber-600">0 <small class="text-xs text-slate-400">间</small></b><span class="text-2xs text-amber-600">低于 ¥10</span></div></div>
+        <div class="bg-white border border-rose-200 rounded-2xl p-5"><p class="text-xs text-slate-400">停电宿舍</p><div class="flex justify-between items-end mt-2"><b class="text-2xl text-rose-600">18 <small class="text-xs text-slate-400">间</small></b><span class="text-2xs text-rose-600">欠费 / 违规</span></div></div>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+        <div class="p-4 border-b border-slate-100 flex flex-col lg:flex-row gap-3 justify-between"><div class="flex flex-wrap gap-2"><div class="relative"><input id="meterSearch" oninput="renderMeterPage()" placeholder="搜索宿舍号 / 电表编号" class="w-64 bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-100"><span class="absolute left-3 top-2 text-slate-400">⌕</span></div><select id="meterStatus" onchange="renderMeterPage()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600"><option value="all">全部状态</option><option value="normal">正常供电</option><option value="warning">余额预警</option><option value="off">已停电</option></select></div><span class="text-2xs text-slate-400 self-center">数据每 30 秒自动更新</span></div>
+        <div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-slate-50 text-slate-500"><tr><th class="px-5 py-3 font-semibold">设备 / 宿舍</th><th class="px-5 py-3 font-semibold">实时功率</th><th class="px-5 py-3 font-semibold">今日用电</th><th class="px-5 py-3 font-semibold">账户余额</th><th class="px-5 py-3 font-semibold">通信状态</th><th class="px-5 py-3 font-semibold">供电状态</th><th class="px-5 py-3 font-semibold text-right">操作</th></tr></thead><tbody id="meterTableBody" class="divide-y divide-slate-100"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 页面 A2.1: 用水管理 -->
+    <!-- ---------------------------------------------------- -->
+    <div id="pageAdminWater" class="hidden space-y-5">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4"><div><div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-sky-500"></span><span class="text-xs font-semibold text-sky-600">NB-IoT 直饮水表实时在线</span></div><h2 class="text-2xl font-bold text-slate-900">用水管理</h2><p class="text-xs text-slate-400 mt-1">楼层直饮水计量、预付费扣款与远程阀控</p></div><div class="flex gap-2"><button onclick="showToast('用水记录已导出')" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600">导出记录</button><button onclick="renderWaterPage(); showToast('水表状态已同步')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-100">同步设备</button></div></div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4"><div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs text-slate-400">NB-IoT 水表</p><div class="flex justify-between items-end mt-2"><b id="waterMeterCount" class="text-2xl">0 <small class="text-xs text-slate-400">台</small></b><span class="text-2xs text-emerald-600">0 台在线</span></div></div><div class="bg-gradient-to-br from-sky-500 to-cyan-600 text-white rounded-2xl p-5"><p class="text-xs text-sky-50">今日直饮水量</p><div class="flex justify-between items-end mt-2"><b class="text-2xl">0.00 <small class="text-xs text-sky-100">m³</small></b><span class="text-2xs text-sky-50">0 笔</span></div></div><div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs text-slate-400">今日扣费</p><div class="flex justify-between items-end mt-2"><b class="text-2xl">¥0.00</b><span class="text-2xs text-emerald-600">可追溯 100%</span></div></div><div class="bg-white border border-rose-200 rounded-2xl p-5"><p class="text-xs text-slate-400">异常设备</p><div class="flex justify-between items-end mt-2"><b class="text-2xl text-rose-600">6 <small class="text-xs text-slate-400">台</small></b><span class="text-2xs text-rose-600">2 台停用</span></div></div></div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5"><div class="flex justify-between items-start gap-4"><div><h3 class="text-sm font-bold text-slate-900">平台计费与阀控流程</h3><p class="text-2xs text-slate-400 mt-1">身份识别和扣费均在平台完成，水表只执行阀控与计量回传</p></div><span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-2xs font-bold whitespace-nowrap">支付链路可追溯</span></div><div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-5"><div class="bg-slate-50 rounded-xl p-3 border border-slate-100"><b class="text-xs">01 扫码取水</b><p class="text-2xs text-slate-400 mt-1">学生扫描设备二维码</p></div><div class="bg-slate-50 rounded-xl p-3 border border-slate-100"><b class="text-xs">02 平台鉴权</b><p class="text-2xs text-slate-400 mt-1">核验身份与账户余额</p></div><div class="bg-indigo-50 rounded-xl p-3 border border-indigo-100"><b class="text-xs text-indigo-700">03 下发开阀</b><p class="text-2xs text-indigo-400 mt-1">经 NB-IoT 发送指令</p></div><div class="bg-sky-50 rounded-xl p-3 border border-sky-100"><b class="text-xs text-sky-700">04 计量回传</b><p class="text-2xs text-sky-500 mt-1">实时上报实际用量</p></div><div class="bg-emerald-50 rounded-xl p-3 border border-emerald-100"><b class="text-xs text-emerald-700">05 精准扣费</b><p class="text-2xs text-emerald-500 mt-1">平台结算并留存流水</p></div></div></div>
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5"><div class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl overflow-hidden"><div class="p-4 border-b border-slate-100 flex justify-between items-center"><div><h3 class="text-sm font-bold">楼层直饮水表</h3><p class="text-2xs text-slate-400 mt-1">一层一表，统一计量与阀控</p></div><input id="waterSearch" oninput="renderWaterPage()" placeholder="搜索设备 / 安装位置" class="w-56 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"></div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-slate-50 text-slate-500"><tr><th class="px-4 py-3">设备 / 位置</th><th class="px-4 py-3">今日用水</th><th class="px-4 py-3">累计订单</th><th class="px-4 py-3">通信</th><th class="px-4 py-3">阀门</th><th class="px-4 py-3 text-right">操作</th></tr></thead><tbody id="waterTableBody" class="divide-y divide-slate-100"></tbody></table></div></div><div class="bg-white border border-slate-200 rounded-2xl overflow-hidden"><div class="p-4 border-b border-slate-100"><h3 class="text-sm font-bold">实时取水记录</h3><p class="text-2xs text-slate-400 mt-1">平台鉴权与预付费流水</p></div><div id="waterOrderList" class="p-4 space-y-3"></div></div></div>
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 页面 A3: 用户与空间级联台 (User Cascading Directory) -->
+    <!-- ---------------------------------------------------- -->
+    <div id="pageAdminUsers" class="hidden space-y-5">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+            <span class="text-xs font-semibold text-indigo-600">住宿信息已同步</span>
+          </div>
+          <h2 class="text-2xl font-bold text-slate-900">用户与空间</h2>
+          <p class="text-xs text-slate-400 mt-1">按楼栋快速查看在住学生及其宿舍用电状态</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+          <div class="bg-white border border-slate-200 rounded-xl px-4 py-2.5"><span class="text-slate-400">在住学生</span><b id="registeredStudentTotal" class="text-slate-800 ml-2">0 人</b></div>
+          <div class="bg-white border border-rose-200 rounded-xl px-4 py-2.5"><span class="text-slate-400">异常关联</span><b id="registeredAbnormalTotal" class="text-rose-600 ml-2">0 人</b></div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- 左侧：宿舍栋/层级级联选择器 -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4 lg:sticky lg:top-28 self-start">
+          <div><h3 class="text-sm font-bold text-slate-800">空间筛选</h3>
+          <p class="text-2xs text-slate-400 mt-1">选择楼栋，右侧花名册将自动更新。</p></div>
+          <div class="space-y-1.5 text-xs">
+            <button data-building="ALL" onclick="filterUsersByCascader('ALL')" class="w-full text-left p-2.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex justify-between"><span>全部在住学生</span><span id="allStudentCount" class="text-indigo-400">0人</span></button>
+            <div class="pt-2 text-2xs font-bold text-slate-400 px-1">已注册楼栋</div>
+            <div id="registeredBuildingFilters" class="space-y-1.5"><p class="p-2 text-slate-400">暂无注册数据</p></div>
+          </div>
+        </div>
+
+        <!-- 右侧：用户多态列表与复合详情卡片 -->
+        <div class="lg:col-span-3 space-y-3">
+          <div class="bg-white border border-slate-200 rounded-xl px-4 py-3 flex justify-between items-center text-xs text-slate-500">
+            <span class="font-semibold text-slate-700">学生花名册 <span class="font-normal text-slate-400 ml-1">按姓名排序</span></span>
+            <span id="filteredUserCount" class="px-2.5 py-1 bg-slate-100 rounded-full text-slate-600">共 0 位学生</span>
+          </div>
+          <div id="usersDirectoryGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <!-- JS 动态注入具有通知小图标、快捷充值按钮的用户卡片 -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="pageUserPortal" class="hidden"></div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- 抽屉组件：宿舍全量详情 (原图左上角「宿舍详细」全集) -->
+  <!-- ========================================== -->
+  <div id="dormDetailDrawer" class="fixed inset-0 z-50 overflow-hidden hidden">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onclick="closeDormDetailDrawer()"></div>
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-lg bg-white shadow-2xl flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 id="drawerDormTitle" class="text-lg font-bold text-slate-900">3#402 综合详情</h3>
+              <span id="drawerStatusTag" class="text-2xs px-2 py-0.5 rounded-full font-bold"></span>
+            </div>
+            <p id="drawerDormUsers" class="text-xs text-slate-400 mt-1">关联用户: --</p>
+          </div>
+          <button onclick="closeDormDetailDrawer()" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+          <!-- 当前余额 -->
+          <div class="bg-slate-900 text-white p-5 rounded-xl flex justify-between items-center shadow-xs">
+            <div>
+              <span class="text-2xs text-slate-400">当前可用电费余额</span>
+              <div id="drawerBalanceAmount" class="text-2xl font-bold mt-0.5">¥ 0.00</div>
+            </div>
+            <button id="drawerRechargeActionBtn" class="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition">
+              快速充值
+            </button>
+          </div>
+
+          <!-- 最近两个月每日用电柱状图 -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-700">近两个月每日用电柱状图 (60 Days)</span>
+              <span class="text-3xs text-slate-400">单位: 度</span>
+            </div>
+            <div class="h-28 flex items-end justify-between gap-1 border-b border-slate-200 pb-1" id="drawerChartBars">
+              <!-- JS 生成柱子 -->
+            </div>
+          </div>
+
+          <!-- 双流水面板：充值流水与扣费明细 (原图：最近50条充值/扣费记录) -->
+          <div class="space-y-3">
+            <div class="flex border-b border-slate-200 text-xs font-semibold">
+              <button onclick="switchDrawerTab('deduct')" id="tabDeductBtn" class="pb-2 border-b-2 border-indigo-600 text-indigo-600 px-3">最近50条扣费记录</button>
+              <button onclick="switchDrawerTab('recharge')" id="tabRechargeBtn" class="pb-2 text-slate-400 hover:text-slate-700 px-3">最近50条充值记录</button>
+            </div>
+            <div id="drawerLogList" class="bg-slate-50 rounded-xl p-3 divide-y divide-slate-200/60 text-xs max-h-48 overflow-y-auto">
+              <!-- 动态流水 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 抽屉组件：通知中心抽屉 (全量欠费与异常通知) -->
+  <!-- ========================================== -->
+  <div id="noticeDrawer" class="fixed inset-0 z-50 overflow-hidden hidden">
+    <div class="absolute inset-0 bg-slate-900/30" onclick="toggleNoticeDrawer(false)"></div>
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-sm bg-white shadow-xl flex flex-col p-6 space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+          <span class="text-sm font-bold text-slate-900">通知与系统告警中心</span>
+          <button onclick="toggleNoticeDrawer(false)" class="text-slate-400 hover:text-slate-600">&times;</button>
+        </div>
+        <div id="noticeDrawerList" class="space-y-2.5 flex-1 overflow-y-auto">
+          <!-- 动态注入欠费通知、异常用电通知 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 模态框：在线充值 (财务闭环核心构件) -->
+  <!-- ========================================== -->
+  <div id="rechargeModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" onclick="closeRechargeModal()"></div>
+    <div class="bg-white rounded-2xl max-w-sm w-full mx-4 p-6 relative z-10 shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h4 class="font-bold text-slate-900">电费在线缴纳充值</h4>
+          <p class="text-xs text-slate-400" id="rechargeModalTarget">目标: 3#402 宿舍</p>
+        </div>
+        <button onclick="closeRechargeModal()" class="text-slate-400 hover:text-slate-600">&times;</button>
+      </div>
+
+      <div class="space-y-1.5">
+        <span class="text-2xs font-bold text-slate-500 uppercase">充值面额快捷选项</span>
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="setModalAmount(30)" class="py-2 rounded-lg border border-slate-200 text-xs font-bold hover:border-indigo-600">¥30</button>
+          <button onclick="setModalAmount(50)" class="py-2 rounded-lg border border-indigo-600 bg-indigo-50 text-indigo-700 text-xs font-bold">¥50</button>
+          <button onclick="setModalAmount(100)" class="py-2 rounded-lg border border-slate-200 text-xs font-bold hover:border-indigo-600">¥100</button>
+          <button onclick="setModalAmount(200)" class="py-2 rounded-lg border border-slate-200 text-xs font-bold hover:border-indigo-600">¥200</button>
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-2xs font-bold text-slate-500 uppercase">自定义充值金额 (元)</label>
+        <input type="number" id="modalAmountInput" value="50" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"/>
+      </div>
+
+      <button onclick="confirmRechargeAction()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-200 transition">
+        确认支付并恢复供电
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast 消息响应 -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl z-50 hidden transition-all flex items-center space-x-2">
+    <span id="toastText">提示内容</span>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 业务数据总线与联动脚本 -->
+  <!-- ========================================== -->
+  <script src="./campus-data.js"></script>
+  <script>
+    // 全局数据状态池
+    const appState = {
+      currentRole: 'admin',      // 'admin' | 'user'
+      adminPage: 'workspace',    // 'workspace' | 'dorms' | 'users'
+      dormViewMode: 'card',      // 'card' | 'list' | 'compact'
+      activeRechargeDormId: '',
+      recentDormClicks: [],
+      drawerTab: 'deduct',
+
+      // 宿舍数据集 (包含每日用电柱状图数据、50条流水)
+      dorms: [],
+
+      // 系统全局通知清单 (闭环)
+      notifications: []
+    };
+
+    // ==========================================
+    // 角色与多页面路由切换
+    // ==========================================
+    function switchRole(role) {
+      appState.currentRole = role;
+      const isAdmin = role === 'admin';
+
+      document.getElementById('roleAdminBtn').className = isAdmin 
+        ? "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-white text-indigo-600 shadow-2xs"
+        : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 transition flex items-center space-x-1.5";
+
+      document.getElementById('roleUserBtn').className = !isAdmin 
+        ? "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-white text-indigo-600 shadow-2xs"
+        : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 transition flex items-center space-x-1.5";
+
+      document.getElementById('adminNavTabs').style.display = isAdmin ? 'flex' : 'none';
+      document.getElementById('avatarBox').textContent = isAdmin ? '管' : '林';
+      document.getElementById('userNameLabel').textContent = isAdmin ? '宿管总控制台' : '学生端';
+
+      if (isAdmin) {
+        document.getElementById('pageUserPortal').classList.add('hidden');
+        switchAdminPage(appState.adminPage);
+      } else {
+        hideAllAdminPages();
+        document.getElementById('pageUserPortal').classList.remove('hidden');
+        renderUserPortal();
+      }
+    }
+
+    function switchAdminPage(pageKey) {
+      appState.adminPage = pageKey;
+      ['workspace', 'meters', 'water', 'users'].forEach(p => {
+        const tabBtn = document.getElementById(`tab${p.charAt(0).toUpperCase() + p.slice(1)}`);
+        if (p === pageKey) {
+          tabBtn.className = "py-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-1.5 font-bold";
+        } else {
+          tabBtn.className = "py-3 border-b-2 border-transparent hover:text-slate-900 flex items-center space-x-1.5 font-medium";
+        }
+      });
+
+      hideAllAdminPages();
+      if (pageKey === 'workspace') {
+        document.getElementById('pageAdminWorkspace').classList.remove('hidden');
+        renderWorkspaceCanvas();
+      } else if (pageKey === 'meters') {
+        document.getElementById('pageAdminDorms').classList.remove('hidden');
+        renderMeterPage();
+      } else if (pageKey === 'water') {
+        document.getElementById('pageAdminWater').classList.remove('hidden');
+        renderWaterPage();
+      } else if (pageKey === 'users') {
+        document.getElementById('pageAdminUsers').classList.remove('hidden');
+        renderUsersDirectory('ALL');
+      }
+    }
+
+    function hideAllAdminPages() {
+      document.getElementById('pageAdminWorkspace').classList.add('hidden');
+      document.getElementById('pageAdminDorms').classList.add('hidden');
+      document.getElementById('pageAdminWater').classList.add('hidden');
+      document.getElementById('pageAdminUsers').classList.add('hidden');
+    }
+
+    // ==========================================
+    // A1. 工作区 (Workspace Canvas) 与双简略图渲染
+    // ==========================================
+    function renderWorkspaceCanvas() {
+      renderCanvasAlerts();
+    }
+
+    function renderCanvasAlerts() {
+      const box = document.getElementById('canvasAlertList');
+      if (!box) return;
+      box.innerHTML = appState.notifications.map(n => `
+        <div class="p-2.5 bg-white border border-slate-200 rounded-lg text-xs flex justify-between items-center shadow-2xs">
+          <div>
+            <div class="font-bold ${n.type === 'arrears' ? 'text-rose-600' : 'text-amber-600'}">${n.title}</div>
+            <div class="text-2xs text-slate-400">${n.text}</div>
+          </div>
+          <button onclick="openDormDetailDrawer('${n.dormId}')" class="px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded text-2xs font-semibold">排查</button>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // A2. 电表与直饮水设备管理
+    const meterDevices = [];
+    const waterDevices = [];
+    let registeredWaterOrders = [];
+    function stateBadge(text, type) { return '<span class="px-2 py-1 rounded-full text-2xs font-bold '+(type==='ok'?'bg-emerald-50 text-emerald-600':type==='warn'?'bg-amber-50 text-amber-600':'bg-rose-50 text-rose-600')+'"><i class="inline-block w-1.5 h-1.5 rounded-full bg-current mr-1"></i>'+text+'</span>'; }
+    function renderMeterPage() {
+      const body = document.getElementById('meterTableBody');
+      if (!body) return;
+      const query = (document.getElementById('meterSearch')?.value || '').toLowerCase();
+      const filter = document.getElementById('meterStatus')?.value || 'all';
+      const rows = meterDevices.filter(device =>
+        (device.id.toLowerCase().includes(query) || device.room.toLowerCase().includes(query)) &&
+        (filter === 'all' || device.filter === filter)
+      );
+      body.innerHTML = rows.map(device => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="px-5 py-4"><div class="flex items-center gap-3"><span class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">⚡</span><div><b class="text-slate-800">${device.room}</b><p class="text-2xs text-slate-400 mt-0.5">${device.id}</p></div></div></td>
+          <td class="px-5 py-4 font-semibold">${device.power}</td><td class="px-5 py-4">${device.today}</td>
+          <td class="px-5 py-4 font-bold ${device.balance <= 10 ? 'text-rose-600' : 'text-slate-800'}">¥ ${device.balance.toFixed(2)}</td>
+          <td class="px-5 py-4">${stateBadge(device.online ? '在线' : '离线', device.online ? 'ok' : 'bad')}</td>
+          <td class="px-5 py-4">${stateBadge(device.state, device.filter === 'normal' ? 'ok' : device.filter === 'warning' ? 'warn' : 'bad')}</td>
+          <td class="px-5 py-4 text-right whitespace-nowrap"><button onclick="showToast('已打开电表实时数据与账户明细')" class="text-indigo-600 font-semibold mr-3">详情</button><button onclick="toggleMeter('${device.id}')" class="text-slate-500 font-semibold">${device.filter === 'normal' ? '断电' : '恢复'}</button></td>
+        </tr>`).join('') || '<tr><td colspan="7" class="py-12 text-center text-slate-400">未找到匹配的电表设备</td></tr>';
+    }
+    function toggleMeter(id,btn){const x=meterDevices.find(v=>v.id===id);if(!x)return;x.filter=x.filter==='normal'?'off':'normal';x.state=x.filter==='normal'?'正常供电':'手动停电';x.power=x.filter==='normal'?'0.72 kW':'0.00 kW';if(id==='EM-NB-30402'&&window.CampusStore)CampusStore.setPower(x.filter==='normal'?'normal':'manual');if(x.backendRoomKey)fetch('/api/admin/device-action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'power',roomKey:x.backendRoomKey,next:x.filter==='normal'?'normal':'manual'})});showToast('已通过 NB-IoT 下发'+(x.filter==='normal'?'合闸':'拉闸')+'指令');renderMeterPage();}
+    function renderDormsPage(){renderMeterPage();}
+    function renderWaterPage() {
+      const body = document.getElementById('waterTableBody');
+      if (!body) return;
+      const query = (document.getElementById('waterSearch')?.value || '').toLowerCase();
+      body.innerHTML = waterDevices.filter(device => device.id.toLowerCase().includes(query) || device.place.toLowerCase().includes(query)).map(device => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="px-4 py-4"><div class="flex gap-3 items-center"><span class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">💧</span><div><b>${device.place}</b><p class="text-2xs text-slate-400 mt-0.5">${device.id}</p></div></div></td>
+          <td class="px-4 py-4 font-bold">${device.usage}</td><td class="px-4 py-4">${device.orders} 笔</td>
+          <td class="px-4 py-4">${stateBadge(device.online ? '在线' : '离线', device.online ? 'ok' : 'bad')}</td><td class="px-4 py-4">${stateBadge(device.valve, device.valve === '开启' ? 'ok' : 'bad')}</td>
+          <td class="px-4 py-4 text-right whitespace-nowrap"><button onclick="showToast('已打开计量与扣费流水')" class="text-sky-600 font-semibold mr-3">用水记录</button><button onclick="toggleWater('${device.id}')" class="text-slate-500 font-semibold">${device.valve === '开启' ? '关阀' : '开阀'}</button></td>
+        </tr>`).join('');
+      const list = document.getElementById('waterOrderList');
+      if (list) list.innerHTML = registeredWaterOrders.length ? registeredWaterOrders.slice(0,6).map(order => `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl"><div><b class="text-xs">${order.name} · ${Number(order.liters).toFixed(1)} L</b><p class="text-3xs text-slate-400 mt-1">${order.place} · ${order.time}</p></div><span class="text-xs font-bold text-sky-600">¥${Number(order.amount).toFixed(2)}</span></div>`).join('') : '<p class="py-8 text-center text-xs text-slate-400">暂无取水记录</p>';
+    }
+    function toggleWater(id){const x=waterDevices.find(v=>v.id===id);if(!x)return;if(!x.online){showToast('设备离线，无法下发阀控指令');return}x.valve=x.valve==='开启'?'关闭':'开启';if(id==='WM-NB-E303'&&window.CampusStore)CampusStore.setWaterValve(x.valve);if(x.backendFloor)fetch('/api/admin/device-action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'water',building:x.backendFloor.building,floor:x.backendFloor.floor,next:x.valve})});showToast('已通过 NB-IoT 下发'+(x.valve==='开启'?'开阀':'关阀')+'指令');renderWaterPage();}
+
+    // A3. 用户与空间级联台 (User Cascading Matrix)
+    // ==========================================
+    function filterUsersByCascader(building) {
+      document.querySelectorAll('[data-building]').forEach(button => {
+        const active = button.dataset.building === building;
+        button.className = active
+          ? 'w-full text-left p-2.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex justify-between transition ring-1 ring-indigo-100'
+          : 'w-full text-left p-2.5 rounded-lg hover:bg-slate-50 text-slate-600 flex justify-between transition';
+      });
+      renderUsersDirectory(building);
+    }
+
+    function renderUsersDirectory(buildingFilter) {
+      const grid = document.getElementById('usersDirectoryGrid');
+      let users = [];
+      appState.dorms.forEach(d => {
+        if (buildingFilter === 'ALL' || d.building === buildingFilter) {
+          d.users.forEach(u => {
+            users.push({ name: u, dormId: d.id, dormStatus: d.status, building: d.building });
+          });
+        }
+      });
+
+      document.getElementById('filteredUserCount').textContent = `共 ${users.length} 位学生`;
+      grid.innerHTML = users.map(u => `
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-2xs hover:border-indigo-200 hover:shadow-md transition">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl ${u.dormStatus === 'danger' ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'} flex items-center justify-center font-bold text-sm">
+              ${u.name.slice(0, 1)}
+            </div>
+            <div>
+              <div class="flex items-center space-x-1.5">
+                <span class="font-bold text-slate-900 text-xs">${u.name}</span>
+                <span class="text-3xs px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 font-mono">${u.dormId}</span>
+              </div>
+              <span class="inline-flex items-center mt-1 text-2xs ${u.dormStatus === 'danger' ? 'text-rose-600' : 'text-emerald-600'}"><i class="w-1.5 h-1.5 rounded-full bg-current mr-1"></i>${u.dormStatus === 'danger' ? '所在宿舍欠费' : '宿舍用电正常'}</span>
+            </div>
+          </div>
+          <!-- 嵌入原图组件：通知小图标 + 简略充值按钮 -->
+          <div class="flex items-center space-x-2">
+            <div class="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:text-indigo-600 relative">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              ${u.dormStatus === 'danger' ? '<span class="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-rose-500 rounded-full"></span>' : ''}
+            </div>
+            <button onclick="openRechargeModal('${u.dormId}')" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-2xs font-bold rounded-lg transition">
+              代充
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // B1. 学生/用户端主页渲染 (User Portal)
+    // ==========================================
+    function renderUserPortal() {
+      const dorm = appState.dorms.find(d => d.id === '3#402');
+      const isDanger = dorm.balance < 0;
+
+      document.getElementById('portalBalanceDisplay').textContent = `¥ ${dorm.balance.toFixed(2)}`;
+      document.getElementById('portalBalanceDisplay').className = `text-3xl font-bold mt-0.5 ${isDanger ? 'text-rose-400' : 'text-emerald-400'}`;
+
+      const statusBadge = document.getElementById('portalDormStatusBadge');
+      statusBadge.className = `text-xs px-2 py-0.5 rounded-full font-bold ${isDanger ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`;
+      statusBadge.textContent = isDanger ? '欠费拉闸中' : '供电正常';
+
+      const noticeBox = document.getElementById('portalNoticeBox');
+      if (isDanger) {
+        noticeBox.className = "p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-1 block";
+        noticeBox.innerHTML = `
+          <div class="font-bold flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+            <span>已触发欠费断电</span>
+          </div>
+          <p class="text-2xs leading-relaxed">您的宿舍余额已透支，公摊电闸已断开，请充值后自动复电。</p>
+        `;
+      } else {
+        noticeBox.className = "p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 space-y-1 block";
+        noticeBox.innerHTML = `
+          <div class="font-bold text-emerald-700">供电正常</div>
+          <p class="text-2xs">当前剩余电费充足，请继续保持节约用电习惯。</p>
+        `;
+      }
+
+      // 绘制用电柱状图
+      const barsBox = document.getElementById('portalUsageBars');
+      barsBox.innerHTML = dorm.dailyUsage.map((val) => `
+        <div class="flex-1 bg-slate-200 hover:bg-indigo-500 rounded-t-xs transition relative group" style="height: ${val * 4}px">
+          <div class="hidden group-hover:block absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-3xs px-1 rounded">
+            ${val}度
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // 宿舍详细全量抽屉 (原图左上角「宿舍详细」)
+    // ==========================================
+    function openDormDetailDrawer(dormId) {
+      const dorm = appState.dorms.find(d => d.id === dormId);
+      if (!dorm) return;
+
+      if (!appState.recentDormClicks.includes(dormId)) {
+        appState.recentDormClicks.unshift(dormId);
+        if (appState.recentDormClicks.length > 3) appState.recentDormClicks.pop();
+        renderDormsPage();
+      }
+
+      document.getElementById('drawerDormTitle').textContent = `${dorm.id} 详细运行看板`;
+      document.getElementById('drawerDormUsers').textContent = `物理位置: ${dorm.building} ${dorm.floor} · 常驻人员: ${dorm.users.join(' / ')}`;
+      document.getElementById('drawerBalanceAmount').textContent = `¥ ${dorm.balance.toFixed(2)}`;
+
+      const tag = document.getElementById('drawerStatusTag');
+      tag.className = `text-2xs px-2 py-0.5 rounded-full font-bold ${dorm.status === 'danger' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`;
+      tag.textContent = dorm.statusText;
+
+      document.getElementById('drawerRechargeActionBtn').onclick = () => openRechargeModal(dorm.id);
+
+      // 渲染近两个月每日用电柱状图 (60 Days)
+      const chart = document.getElementById('drawerChartBars');
+      chart.innerHTML = dorm.dailyUsage.map(v => `
+        <div class="flex-1 bg-slate-200 hover:bg-indigo-600 rounded-t-xs transition" style="height: ${v * 4}px"></div>
+      `).join('');
+
+      renderDrawerLogs(dorm);
+      document.getElementById('dormDetailDrawer').classList.remove('hidden');
+    }
+
+    function closeDormDetailDrawer() {
+      document.getElementById('dormDetailDrawer').classList.add('hidden');
+    }
+
+    function switchDrawerTab(tab) {
+      appState.drawerTab = tab;
+      const deductBtn = document.getElementById('tabDeductBtn');
+      const rechargeBtn = document.getElementById('tabRechargeBtn');
+      if (tab === 'deduct') {
+        deductBtn.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600 px-3 font-bold";
+        rechargeBtn.className = "pb-2 text-slate-400 hover:text-slate-700 px-3";
+      } else {
+        rechargeBtn.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600 px-3 font-bold";
+        deductBtn.className = "pb-2 text-slate-400 hover:text-slate-700 px-3";
+      }
+      const dorm = appState.dorms.find(d => d.id === '3#402');
+      renderDrawerLogs(dorm);
+    }
+
+    function renderDrawerLogs(dorm) {
+      const logBox = document.getElementById('drawerLogList');
+      if (appState.drawerTab === 'deduct') {
+        logBox.innerHTML = dorm.deductions.map(item => `
+          <div class="py-2 flex justify-between items-center">
+            <div>
+              <div class="font-bold text-slate-800">${item.desc}</div>
+              <div class="text-3xs text-slate-400">${item.time}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-slate-900">${item.amount}</div>
+              <div class="text-3xs text-slate-400">余: ${item.balanceAfter}</div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        logBox.innerHTML = dorm.recharges.map(item => `
+          <div class="py-2 flex justify-between items-center">
+            <div>
+              <div class="font-bold text-slate-800">${item.channel}</div>
+              <div class="text-3xs text-slate-400">${item.time}</div>
+            </div>
+            <div class="font-bold text-emerald-600">${item.amount}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // ==========================================
+    // 通知中心抽屉
+    // ==========================================
+    function toggleNoticeDrawer(force) {
+      const drawer = document.getElementById('noticeDrawer');
+      if (force !== undefined) {
+        force ? drawer.classList.remove('hidden') : drawer.classList.add('hidden');
+      } else {
+        drawer.classList.toggle('hidden');
+      }
+      renderNoticeDrawerList();
+    }
+
+    function renderNoticeDrawerList() {
+      const list = document.getElementById('noticeDrawerList');
+      const badge = document.getElementById('noticeBadge');
+
+      if (appState.notifications.length === 0) {
+        list.innerHTML = '<div class="text-center text-xs text-slate-400 py-10">系统当前无任何异常告警</div>';
+        badge.classList.add('hidden');
+        return;
+      }
+
+      badge.classList.remove('hidden');
+      list.innerHTML = appState.notifications.map(n => `
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold ${n.type === 'arrears' ? 'text-rose-600' : 'text-amber-600'}">${n.title}</span>
+            <span class="text-3xs text-slate-400">${n.time}</span>
+          </div>
+          <p class="text-2xs text-slate-600">${n.text}</p>
+          <div class="flex justify-end">
+            ${n.type === 'arrears' 
+              ? `<button onclick="openRechargeModal('${n.dormId}')" class="px-2.5 py-1 bg-rose-600 text-white rounded-md text-2xs font-bold">立即缴费复电</button>`
+              : `<button onclick="openDormDetailDrawer('${n.dormId}')" class="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-2xs font-bold">查阅曲线</button>`
+            }
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // 财务充值闭环执行器 (逻辑闭环关键)
+    // ==========================================
+    function openRechargeModal(dormId) {
+      appState.activeRechargeDormId = dormId;
+      document.getElementById('rechargeModalTarget').textContent = `充值目标账户：${dormId} 宿舍`;
+      document.getElementById('rechargeModal').classList.remove('hidden');
+      toggleNoticeDrawer(false);
+    }
+
+    function closeRechargeModal() {
+      document.getElementById('rechargeModal').classList.add('hidden');
+    }
+
+    function setModalAmount(val) {
+      document.getElementById('modalAmountInput').value = val;
+    }
+
+    function confirmRechargeAction() {
+      const amount = parseFloat(document.getElementById('modalAmountInput').value) || 0;
+      if (amount <= 0) return;
+
+      const dorm = appState.dorms.find(d => d.id === appState.activeRechargeDormId);
+      if (dorm) {
+        dorm.balance += amount;
+        dorm.status = 'normal';
+        dorm.statusText = '供电正常';
+        dorm.recharges.unshift({
+          channel: appState.currentRole === 'admin' ? '管理员台代充' : '学生微信在线缴费',
+          time: '刚刚',
+          amount: `+¥${amount.toFixed(2)}`
+        });
+
+        // 消除欠费告警 (闭环)
+        appState.notifications = appState.notifications.filter(n => !(n.dormId === dorm.id && n.type === 'arrears'));
+        if (dorm.id === '3#402' && window.CampusStore) CampusStore.recharge(amount, '管理员台代充');
+      }
+
+      closeRechargeModal();
+      closeDormDetailDrawer();
+
+      // 全局刷新
+      renderWorkspaceCanvas();
+      renderDormsPage();
+      renderUsersDirectory('ALL');
+      if (document.getElementById('portalBalanceDisplay')) renderUserPortal();
+      renderNoticeDrawerList();
+
+      showToast(`已成功为 ${appState.activeRechargeDormId} 注入 ¥${amount.toFixed(2)}，欠费告警已解除，供电恢复！`);
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastText').textContent = text;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    function resetWorkspaceWidgets() {
+      renderWorkspaceCanvas();
+      showToast('工作区已重置为默认监控视图');
+    }
+
+    function mountWidget(type) {
+      showToast(`已将微件成功挂载到工作区`);
+    }
+
+    // 初始化运行
+    window.addEventListener('DOMContentLoaded', () => {
+      switchRole('admin');
+    });
+  </script>
+  <script>
+    // 将学生端共享账户状态映射到管理端现有组件
+    function syncSharedDataToAdmin(shared) {
+      const room = shared.room;
+      const dorm = appState.dorms.find(item => item.id === room.id);
+      if (dorm) {
+        dorm.balance = room.balance;
+        dorm.status = room.powerState === 'normal' ? 'normal' : 'danger';
+        dorm.statusText = room.powerState === 'normal' ? '供电正常' : room.powerState === 'violation' ? '违规停电' : room.powerState === 'arrears' ? '欠费断电' : '手动停电';
+        dorm.users = room.students.slice();
+      }
+      const meter = meterDevices.find(item => item.id === 'EM-NB-30402');
+      if (meter) {
+        meter.balance = room.balance;
+        meter.power = room.powerState === 'normal' ? `${room.power.toFixed(2)} kW` : '0.00 kW';
+        meter.today = `${room.todayKwh.toFixed(1)} kWh`;
+        meter.filter = room.powerState === 'normal' ? (room.balance <= 10 ? 'warning' : 'normal') : 'off';
+        meter.state = room.powerState === 'normal' ? (room.balance <= 10 ? '余额预警' : '正常供电') : room.powerState === 'violation' ? '违规停电' : room.powerState === 'arrears' ? '欠费停电' : '手动停电';
+      }
+      const water = waterDevices.find(item => item.id === shared.water.meterId);
+      if (water) {
+        water.valve = shared.water.valve;
+        water.online = shared.water.online;
+        water.usage = `${shared.water.monthLiters.toFixed(1)} L`;
+        water.orders = shared.water.records.length;
+      }
+      appState.notifications = shared.notifications.filter(item => !item.read).map(item => ({
+        id: item.id, dormId: room.id,
+        type: item.level === 'danger' ? 'arrears' : 'anomaly',
+        title: item.title, text: item.text, time: item.time
+      }));
+      if (appState.adminPage === 'workspace') renderWorkspaceCanvas();
+      if (appState.adminPage === 'meters') renderMeterPage();
+      if (appState.adminPage === 'water') renderWaterPage();
+      if (appState.adminPage === 'users') renderUsersDirectory('ALL');
+      renderNoticeDrawerList();
+    }
+    async function loadRegisteredStudents() {
+      try {
+        const response = await fetch('/api/admin/students', {cache:'no-store'});
+        if (!response.ok) return;
+        const payload = await response.json();
+        registeredWaterOrders = payload.students.flatMap(student => (student.waterRecords || []).map(record => ({...record,name:student.name}))); 
+        appState.dorms = appState.dorms.filter(item => !item.backendRegistered);
+        meterDevices.splice(0, meterDevices.length, ...meterDevices.filter(item => !item.backendRegistered));
+        waterDevices.splice(0, waterDevices.length, ...waterDevices.filter(item => !item.backendRegistered));
+        payload.rooms.forEach(room => {
+          const occupants = payload.students.filter(student => student.roomKey === room.key);
+          const roomNormal=(room.powerState||'normal')==='normal';
+          appState.dorms.push({id:room.key,building:room.building,floor:`${room.floor}层`,balance:room.balance||0,status:roomNormal?'normal':'danger',statusText:roomNormal?'供电正常':'暂停供电',users:occupants.map(item=>item.name),dailyUsage:Array(20).fill(0),deductions:[],recharges:[],backendRegistered:true});
+          meterDevices.push({id:`EM-NB-${room.key}`,room:room.label,power:roomNormal?`${Number(room.power||0).toFixed(2)} kW`:'0.00 kW',today:`${Number(room.todayKwh||0).toFixed(1)} kWh`,balance:room.balance||0,online:true,state:roomNormal?'正常供电':'手动停电',filter:roomNormal?'normal':'off',backendRegistered:true,backendRoomKey:room.key});
+        });
+        const floors = new Map();
+        payload.students.forEach(student => floors.set(`${student.building}-${student.floor}`, student));
+        floors.forEach(student => waterDevices.push({id:student.waterMeterId||`WM-NB-${student.building}-${student.floor}F`,place:`${student.building} ${student.floor}层`,usage:`${student.waterUsage.toFixed(1)} L`,orders:0,online:student.waterOnline,valve:student.waterValve,backendRegistered:true,backendFloor:{building:student.building,floor:student.floor}}));
+        const studentTotal = payload.students.length;
+        const abnormalTotal = payload.students.filter(student => student.powerState !== 'normal').length;
+        const totalElectricity = payload.rooms.reduce((sum, room) => sum + Number(room.todayKwh || 0), 0);
+        const totalWaterLiters = payload.students.reduce((sum, student) => sum + Number(student.waterUsage || 0), 0);
+        const alerts = payload.students.flatMap(student => student.notifications || []).filter(item => !item.read);
+        document.getElementById('registeredStudentTotal').textContent = `${studentTotal} 人`;
+        document.getElementById('registeredAbnormalTotal').textContent = `${abnormalTotal} 人`;
+        document.getElementById('allStudentCount').textContent = `${studentTotal}人`;
+        document.getElementById('meterCount').firstChild.textContent = `${payload.rooms.length} `;
+        document.getElementById('waterMeterCount').firstChild.textContent = `${floors.size} `;
+        document.getElementById('overviewElectricity').innerHTML = `${totalElectricity.toFixed(1)} <span class="text-sm font-medium">kWh</span>`;
+        document.getElementById('overviewWater').innerHTML = `${(totalWaterLiters / 1000).toFixed(2)} <span class="text-sm font-medium">m³</span>`;
+        document.getElementById('overviewDevices').innerHTML = `${payload.rooms.length + floors.size} <span class="text-sm font-medium text-slate-400">台</span>`;
+        document.getElementById('overviewAlerts').innerHTML = `${alerts.length} <span class="text-sm font-medium text-slate-400">条</span>`;
+        appState.notifications = alerts.map(item => ({id:item.id,dormId:'',type:item.level==='danger'?'arrears':'anomaly',title:item.title,text:item.text,time:item.time}));
+        const buildingCounts = new Map();
+        payload.students.forEach(student => buildingCounts.set(student.building, (buildingCounts.get(student.building) || 0) + 1));
+        document.getElementById('registeredBuildingFilters').innerHTML = buildingCounts.size ? [...buildingCounts].map(([building,count]) => `<button data-building="${building}" onclick="filterUsersByCascader('${building}')" class="w-full text-left p-2.5 rounded-lg hover:bg-slate-50 text-slate-600 flex justify-between transition"><span>${building}</span><span class="text-slate-400">${count}人</span></button>`).join('') : '<p class="p-2 text-slate-400">暂无注册数据</p>';
+        if (appState.adminPage === 'meters') renderMeterPage();
+        if (appState.adminPage === 'water') renderWaterPage();
+        if (appState.adminPage === 'users') renderUsersDirectory('ALL');
+        if (appState.adminPage === 'workspace') renderWorkspaceCanvas();
+        renderNoticeDrawerList();
+      } catch (_) {}
+    }
+    async function logoutAdmin(){await fetch('/api/logout',{method:'POST'});location.href='/login.html'}
+    loadRegisteredStudents();
+    setInterval(loadRegisteredStudents, 3000);
+  </script>
+</body>
+</html>

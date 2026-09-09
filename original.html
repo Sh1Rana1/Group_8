@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoltDorm 智慧宿舍用电管理系统 · 交互原型</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- ========================================== -->
+  <!-- 顶栏：全局系统层 (系统 Brand / 角色切换器 / 通知微件) -->
+  <!-- ========================================== -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-2xs">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      
+      <!-- Logo 与系统标题 -->
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div>
+          <span class="font-bold text-slate-900 leading-none block">VoltDorm OS</span>
+          <span class="text-2xs text-slate-400">高校宿舍用电与能耗平衡系统</span>
+        </div>
+      </div>
+
+      <!-- 核心视角/角色切换器 (双角色隔离体验) -->
+      <div class="bg-slate-100 p-1 rounded-xl flex items-center space-x-1 border border-slate-200">
+        <button id="roleAdminBtn" onclick="switchRole('admin')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-white text-indigo-600 shadow-2xs">
+          <span>👨‍💼 管理员视图</span>
+        </button>
+        <button id="roleUserBtn" onclick="switchRole('user')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 transition flex items-center space-x-1.5">
+          <span>🧑‍🎓 学生/住户端</span>
+        </button>
+      </div>
+
+      <!-- 顶栏右侧：缩小图标套件 (通知缩小图标 + 快捷入口) -->
+      <div class="flex items-center space-x-3">
+        <!-- 原图：通知视图缩小图标 -->
+        <div class="relative">
+          <button onclick="toggleNoticeDrawer()" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition relative">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span id="noticeBadge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
+          </button>
+        </div>
+        <div class="h-4 w-px bg-slate-200"></div>
+        <!-- 管理员信息 -->
+        <div class="flex items-center space-x-2 text-xs">
+          <div class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600" id="avatarBox">管</div>
+          <span class="font-medium text-slate-700" id="userNameLabel">宿管总控制台</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 管理员子导航 Tab (切换 A1, A2, A3) -->
+    <div id="adminNavTabs" class="max-w-7xl mx-auto px-6 flex space-x-8 border-t border-slate-100 text-xs font-semibold text-slate-500">
+      <button onclick="switchAdminPage('workspace')" id="tabWorkspace" class="py-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+        <span>A1. 监控工作台 (Canvas)</span>
+      </button>
+      <button onclick="switchAdminPage('dorms')" id="tabDorms" class="py-3 border-b-2 border-transparent hover:text-slate-900 flex items-center space-x-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <span>A2. 宿舍资产台 (Dorms)</span>
+      </button>
+      <button onclick="switchAdminPage('users')" id="tabUsers" class="py-3 border-b-2 border-transparent hover:text-slate-900 flex items-center space-x-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span>A3. 用户与空间级联 (Users)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 核心主容器区 -->
+  <!-- ========================================== -->
+  <main class="max-w-7xl mx-auto px-6 py-6 flex-1 w-full">
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 页面 A1: 模块化监控工作台 (落实原图中央的「工作区」与双简略图) -->
+    <!-- ---------------------------------------------------- -->
+    <div id="pageAdminWorkspace" class="space-y-6">
+      
+      <!-- 页面引导栏 -->
+      <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">自定义工作台画布 (Droppable Workspace)</h2>
+          <p class="text-xs text-slate-400">将左侧资产池的「宿舍简略图」或「用户简略图」挂载于中央工作区，实现一屏多维巡检。</p>
+        </div>
+        <div class="flex items-center space-x-2 text-xs">
+          <span class="text-slate-400 font-mono">WORKSPACE_SLOTS: 3/4 ACTIVE</span>
+          <button onclick="resetWorkspaceWidgets()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold">重置默认布局</button>
+        </div>
+      </div>
+
+      <!-- 工作区主布局 (左右分栏搭建) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 左侧微件备选区 (原图：所有宿舍简略图 / 所有用户简略图) -->
+        <div class="lg:col-span-4 space-y-4">
+          <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">待放置微件 (Available Widgets)</div>
+          
+          <!-- 微件 1: 所有宿舍简略图 (已补齐视觉布置：矩阵热力图) -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-800">所有宿舍简略图 (矩阵热力)</span>
+              <span class="text-2xs bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-bold">120间监控中</span>
+            </div>
+            <p class="text-2xs text-slate-400">微型色块反映房态：绿(正常)、橙(预警)、红(欠费断电)。</p>
+            <!-- 矩阵热力图标本 -->
+            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
+              <div class="grid grid-cols-10 gap-1.5" id="dormHeatmapMini">
+                <!-- 由 JS 动态填充 40 个方格矩阵 -->
+              </div>
+            </div>
+            <button onclick="mountWidget('dormHeatmap')" class="w-full py-1.5 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold rounded-lg transition">
+              + 放置进主工作区
+            </button>
+          </div>
+
+          <!-- 微件 2: 所有用户简略图 (已补齐视觉布置：人员负荷分布条) -->
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-800">所有用户简略图 (负荷概览)</span>
+              <span class="text-2xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">480位在住</span>
+            </div>
+            <!-- 用户状态分布柱 -->
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between text-2xs">
+                <span class="text-slate-500">正常供电人员 (96%)</span>
+                <span class="font-bold text-emerald-600">461人</span>
+              </div>
+              <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex">
+                <div class="bg-emerald-500 h-full" style="width: 96%"></div>
+                <div class="bg-rose-500 h-full" style="width: 4%"></div>
+              </div>
+              <div class="flex justify-between text-2xs">
+                <span class="text-slate-500">欠费断电关联住户 (4%)</span>
+                <span class="font-bold text-rose-600">19人 (涉及3#402等)</span>
+              </div>
+            </div>
+            <button onclick="mountWidget('userOverview')" class="w-full py-1.5 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold rounded-lg transition">
+              + 放置进主工作区
+            </button>
+          </div>
+
+        </div>
+
+        <!-- 右侧：可被放置的工作区容器 (Canvas) -->
+        <div class="lg:col-span-8 bg-white border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col space-y-4">
+          <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+              <span class="text-xs font-bold text-slate-800 uppercase tracking-wide">可被放置的工作区 (Active Canvas)</span>
+            </div>
+            <span class="text-2xs text-slate-400 font-mono">DRAGGABLE_GRID_12COL</span>
+          </div>
+
+          <!-- 挂载的动态插槽容器 -->
+          <div id="canvasSlots" class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+            <!-- 槽位内容将由 JS 响应放置 -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 页面 A2: 宿舍与空间资产管理 (Dorm Management) -->
+    <!-- ---------------------------------------------------- -->
+    <div id="pageAdminDorms" class="hidden space-y-4">
+      
+      <!-- 控制器条 (原图：分组按钮、搜索框、最近点击过的X个宿舍) -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+        <div class="flex items-center space-x-3">
+          <!-- 楼栋/楼层分组切换按钮 -->
+          <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs">
+            <button class="px-3 py-1 bg-white text-indigo-600 font-bold rounded-md shadow-2xs">以宿舍栋分组</button>
+            <button class="px-3 py-1 text-slate-500 hover:text-slate-800">以宿舍楼层分组</button>
+          </div>
+          <!-- 搜索跳转框 -->
+          <div class="relative w-64">
+            <input type="text" placeholder="输入房号直接跳转 (如 3#402)..." class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:outline-hidden focus:ring-1 focus:ring-indigo-500"/>
+            <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+        </div>
+
+        <!-- 最近点击过的 X 个宿舍 -->
+        <div class="flex items-center space-x-2 text-xs">
+          <span class="text-slate-400">最近浏览缓存:</span>
+          <div id="dormsRecentList" class="flex space-x-1.5 font-mono">
+            <!-- JS 注入 -->
+          </div>
+        </div>
+
+        <!-- 视图形态切换 (图标态 / 列表态 / 简略态) -->
+        <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg text-xs">
+          <button onclick="setDormView('card')" id="btnDormCard" class="px-2.5 py-1 bg-white text-indigo-600 rounded font-bold shadow-2xs">图标卡片</button>
+          <button onclick="setDormView('list')" id="btnDormList" class="px-2.5 py-1 text-slate-600 hover:text-slate-900">列表明细</button>
+          <button onclick="setDormView('compact')" id="btnDormCompact" class="px-2.5 py-1 text-slate-600 hover:text-slate-900">紧凑简略</button>
+        </div>
+      </div>
+
+      <!-- 宿舍实体展示网格 (点击打开详情抽屉) -->
+      <div id="dormsGridContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- JS 动态注入 -->
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 页面 A3: 用户与空间级联台 (User Cascading Directory) -->
+    <!-- ---------------------------------------------------- -->
+    <div id="pageAdminUsers" class="hidden space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- 左侧：宿舍栋/层级级联选择器 -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+          <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">空间拓扑选择器</h3>
+          <p class="text-2xs text-slate-400">按楼栋、楼层递进选择，联动筛选左侧用户花名册。</p>
+          <div class="space-y-1.5 text-xs">
+            <button onclick="filterUsersByCascader('ALL')" class="w-full text-left p-2.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex justify-between">
+              <span>全部在住学生</span><span class="text-indigo-400">8人</span>
+            </button>
+            <div class="pt-2 text-2xs font-bold text-slate-400 px-1">按楼宇收窄</div>
+            <button onclick="filterUsersByCascader('3栋')" class="w-full text-left p-2 rounded-lg hover:bg-slate-50 text-slate-600 flex justify-between">
+              <span>3号楼 (男生宿舍)</span><span class="text-slate-400">3人</span>
+            </button>
+            <button onclick="filterUsersByCascader('5栋')" class="w-full text-left p-2 rounded-lg hover:bg-slate-50 text-slate-600 flex justify-between">
+              <span>5号楼 (研究生楼)</span><span class="text-slate-400">2人</span>
+            </button>
+            <button onclick="filterUsersByCascader('1栋')" class="w-full text-left p-2 rounded-lg hover:bg-slate-50 text-slate-600 flex justify-between">
+              <span>1号楼 (国际留学生)</span><span class="text-slate-400">3人</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 右侧：用户多态列表与复合详情卡片 -->
+        <div class="lg:col-span-3 space-y-3">
+          <div class="flex justify-between items-center text-xs text-slate-500 px-1">
+            <span>用户花名册 (排序策略：按姓名拼音升序，分页策略：组内50条)</span>
+            <span id="filteredUserCount">匹配结果: 8 位学生</span>
+          </div>
+          <div id="usersDirectoryGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <!-- JS 动态注入具有通知小图标、快捷充值按钮的用户卡片 -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 页面 B1: 学生/住户端主页 (Resident Portal) -->
+    <!-- ---------------------------------------------------- -->
+    <div id="pageUserPortal" class="hidden max-w-4xl mx-auto space-y-6">
+      
+      <!-- 学生身份信息与电费概览 -->
+      <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 font-mono">学生宿舍中心</span>
+            <span id="portalDormStatusBadge"></span>
+          </div>
+          <h2 class="text-2xl font-bold mt-1">桃园公寓 3#402 宿舍</h2>
+          <p class="text-xs text-slate-400 mt-1">当前登录学生: 林子轩 (2021级软件工程) · 室友: 张逸飞, 周天宇</p>
+        </div>
+        <div class="text-left md:text-right">
+          <span class="text-2xs text-slate-400">电费剩余可用金额</span>
+          <div class="text-3xl font-bold text-white mt-0.5" id="portalBalanceDisplay">¥ -12.40</div>
+          <button onclick="openRechargeModal('3#402')" class="mt-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition shadow-md">
+            + 立即在线缴纳电费
+          </button>
+        </div>
+      </div>
+
+      <!-- 学生端：用电图表与室友卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 60天用电量柱状图 (学生视图) -->
+        <div class="md:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-bold text-slate-800">寝室近两个月每日用电曲线 (kWh)</h3>
+            <span class="text-2xs text-slate-400">单价: ¥0.538/度</span>
+          </div>
+          <div class="h-32 flex items-end justify-between gap-1 pt-4 border-b border-slate-100" id="portalUsageBars">
+            <!-- JS 绘制柱状图 -->
+          </div>
+          <div class="flex justify-between text-3xs text-slate-400 font-mono">
+            <span>60天前</span>
+            <span>昨日 (耗电 4.2度)</span>
+            <span>今日实时</span>
+          </div>
+        </div>
+
+        <!-- 个人提醒与室友分摊 -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
+          <h3 class="text-xs font-bold text-slate-800">安全用电与室友</h3>
+          <div id="portalNoticeBox" class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-1">
+            <div class="font-bold flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+              <span>已触发欠费断电</span>
+            </div>
+            <p class="text-2xs leading-relaxed">您的宿舍余额已透支，公摊电闸已切断，请充值后自动复电。</p>
+          </div>
+
+          <div class="space-y-2">
+            <span class="text-2xs font-bold text-slate-400 uppercase">公摊室友</span>
+            <div class="space-y-1.5 text-xs">
+              <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+                <span class="font-medium text-slate-700">林子轩 (我)</span>
+                <span class="text-2xs text-indigo-600 font-semibold">已绑卡</span>
+              </div>
+              <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+                <span class="font-medium text-slate-700">张逸飞</span>
+                <span class="text-2xs text-slate-400">已分摊</span>
+              </div>
+              <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+                <span class="font-medium text-slate-700">周天宇</span>
+                <span class="text-2xs text-slate-400">已分摊</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- 抽屉组件：宿舍全量详情 (原图左上角「宿舍详细」全集) -->
+  <!-- ========================================== -->
+  <div id="dormDetailDrawer" class="fixed inset-0 z-50 overflow-hidden hidden">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onclick="closeDormDetailDrawer()"></div>
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-lg bg-white shadow-2xl flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 id="drawerDormTitle" class="text-lg font-bold text-slate-900">3#402 综合详情</h3>
+              <span id="drawerStatusTag" class="text-2xs px-2 py-0.5 rounded-full font-bold"></span>
+            </div>
+            <p id="drawerDormUsers" class="text-xs text-slate-400 mt-1">关联用户: --</p>
+          </div>
+          <button onclick="closeDormDetailDrawer()" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+          <!-- 当前余额 -->
+          <div class="bg-slate-900 text-white p-5 rounded-xl flex justify-between items-center shadow-xs">
+            <div>
+              <span class="text-2xs text-slate-400">当前可用电费余额</span>
+              <div id="drawerBalanceAmount" class="text-2xl font-bold mt-0.5">¥ 0.00</div>
+            </div>
+            <button id="drawerRechargeActionBtn" class="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition">
+              快速充值
+            </button>
+          </div>
+
+          <!-- 最近两个月每日用电柱状图 -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-700">近两个月每日用电柱状图 (60 Days)</span>
+              <span class="text-3xs text-slate-400">单位: 度</span>
+            </div>
+            <div class="h-28 flex items-end justify-between gap-1 border-b border-slate-200 pb-1" id="drawerChartBars">
+              <!-- JS 生成柱子 -->
+            </div>
+          </div>
+
+          <!-- 双流水面板：充值流水与扣费明细 (原图：最近50条充值/扣费记录) -->
+          <div class="space-y-3">
+            <div class="flex border-b border-slate-200 text-xs font-semibold">
+              <button onclick="switchDrawerTab('deduct')" id="tabDeductBtn" class="pb-2 border-b-2 border-indigo-600 text-indigo-600 px-3">最近50条扣费记录</button>
+              <button onclick="switchDrawerTab('recharge')" id="tabRechargeBtn" class="pb-2 text-slate-400 hover:text-slate-700 px-3">最近50条充值记录</button>
+            </div>
+            <div id="drawerLogList" class="bg-slate-50 rounded-xl p-3 divide-y divide-slate-200/60 text-xs max-h-48 overflow-y-auto">
+              <!-- 动态流水 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 抽屉组件：通知中心抽屉 (全量欠费与异常通知) -->
+  <!-- ========================================== -->
+  <div id="noticeDrawer" class="fixed inset-0 z-50 overflow-hidden hidden">
+    <div class="absolute inset-0 bg-slate-900/30" onclick="toggleNoticeDrawer(false)"></div>
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-sm bg-white shadow-xl flex flex-col p-6 space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+          <span class="text-sm font-bold text-slate-900">通知与系统告警中心</span>
+          <button onclick="toggleNoticeDrawer(false)" class="text-slate-400 hover:text-slate-600">&times;</button>
+        </div>
+        <div id="noticeDrawerList" class="space-y-2.5 flex-1 overflow-y-auto">
+          <!-- 动态注入欠费通知、异常用电通知 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 模态框：在线充值 (财务闭环核心构件) -->
+  <!-- ========================================== -->
+  <div id="rechargeModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" onclick="closeRechargeModal()"></div>
+    <div class="bg-white rounded-2xl max-w-sm w-full mx-4 p-6 relative z-10 shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h4 class="font-bold text-slate-900">电费在线缴纳充值</h4>
+          <p class="text-xs text-slate-400" id="rechargeModalTarget">目标: 3#402 宿舍</p>
+        </div>
+        <button onclick="closeRechargeModal()" class="text-slate-400 hover:text-slate-600">&times;</button>
+      </div>
+
+      <div class="space-y-1.5">
+        <span class="text-2xs font-bold text-slate-500 uppercase">充值面额快捷选项</span>
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="setModalAmount(30)" class="py-2 rounded-lg border border-slate-200 text-xs font-bold hover:border-indigo-600">¥30</button>
+          <button onclick="setModalAmount(50)" class="py-2 rounded-lg border border-indigo-600 bg-indigo-50 text-indigo-700 text-xs font-bold">¥50</button>
+          <button onclick="setModalAmount(100)" class="py-2 rounded-lg border border-slate-200 text-xs font-bold hover:border-indigo-600">¥100</button>
+          <button onclick="setModalAmount(200)" class="py-2 rounded-lg border border-slate-200 text-xs font-bold hover:border-indigo-600">¥200</button>
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-2xs font-bold text-slate-500 uppercase">自定义充值金额 (元)</label>
+        <input type="number" id="modalAmountInput" value="50" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"/>
+      </div>
+
+      <button onclick="confirmRechargeAction()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-200 transition">
+        确认支付并恢复供电
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast 消息响应 -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl z-50 hidden transition-all flex items-center space-x-2">
+    <span id="toastText">提示内容</span>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 业务数据总线与联动脚本 -->
+  <!-- ========================================== -->
+  <script>
+    // 全局数据状态池
+    const appState = {
+      currentRole: 'admin',      // 'admin' | 'user'
+      adminPage: 'workspace',    // 'workspace' | 'dorms' | 'users'
+      dormViewMode: 'card',      // 'card' | 'list' | 'compact'
+      activeRechargeDormId: '3#402',
+      recentDormClicks: ['3#402', '5#201'],
+      drawerTab: 'deduct',
+
+      // 宿舍数据集 (包含每日用电柱状图数据、50条流水)
+      dorms: [
+        {
+          id: '3#402',
+          building: '3栋',
+          floor: '4层',
+          balance: -12.40,
+          status: 'danger', // 欠费
+          statusText: '欠费断电',
+          users: ['林子轩', '张逸飞', '周天宇'],
+          dailyUsage: [4,5,6,8,7,12,18,16,5,6,4,3,5,7,9,14,12,5,8,4],
+          deductions: [
+            { desc: '昨日用电扣费 (4.2度)', time: '昨天 23:59', amount: '-¥2.26', balanceAfter: '-¥12.40' },
+            { desc: '前日用电扣费 (5.1度)', time: '前天 23:59', amount: '-¥2.74', balanceAfter: '-¥10.14' }
+          ],
+          recharges: [
+            { channel: '微信在线充值', time: '10-15 12:20', amount: '+¥50.00' }
+          ]
+        },
+        {
+          id: '5#201',
+          building: '5栋',
+          floor: '2层',
+          balance: 14.80,
+          status: 'warning', // 预警
+          statusText: '余额偏低',
+          users: ['陈浩', '黄明'],
+          dailyUsage: [6,8,9,12,15,22,28,26,20,18,15,12,10,9,11,10,8,9,12,14],
+          deductions: [
+            { desc: '昨日用电扣费 (14.2度-高耗)', time: '昨天 23:59', amount: '-¥7.64', balanceAfter: '¥14.80' }
+          ],
+          recharges: [
+            { channel: '管理员代充', time: '10-01 09:15', amount: '+¥100.00' }
+          ]
+        },
+        {
+          id: '1#108',
+          building: '1栋',
+          floor: '1层',
+          balance: 168.00,
+          status: 'normal',
+          statusText: '供电正常',
+          users: ['苏沐', '陆景深', '何安'],
+          dailyUsage: [3,4,3,4,3,5,4,3,4,4,5,4,3,4,4,3,4,5,4,4],
+          deductions: [
+            { desc: '昨日用电扣费 (3.4度)', time: '昨天 23:59', amount: '-¥1.83', balanceAfter: '¥168.00' }
+          ],
+          recharges: [
+            { channel: '支付宝充值', time: '10-20 18:00', amount: '+¥200.00' }
+          ]
+        }
+      ],
+
+      // 系统全局通知清单 (闭环)
+      notifications: [
+        { id: 101, dormId: '3#402', type: 'arrears', title: '欠费拉闸警告', text: '3#402 房间当前透支 -¥12.40，已自动断电。', time: '15分钟前' },
+        { id: 102, dormId: '5#201', type: 'anomaly', title: '用电负荷激增', text: '5#201 过去2小时瞬时功率突破4200W，疑似违规加热器。', time: '40分钟前' }
+      ]
+    };
+
+    // ==========================================
+    // 角色与多页面路由切换
+    // ==========================================
+    function switchRole(role) {
+      appState.currentRole = role;
+      const isAdmin = role === 'admin';
+
+      document.getElementById('roleAdminBtn').className = isAdmin 
+        ? "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-white text-indigo-600 shadow-2xs"
+        : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 transition flex items-center space-x-1.5";
+
+      document.getElementById('roleUserBtn').className = !isAdmin 
+        ? "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 bg-white text-indigo-600 shadow-2xs"
+        : "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 transition flex items-center space-x-1.5";
+
+      document.getElementById('adminNavTabs').style.display = isAdmin ? 'flex' : 'none';
+      document.getElementById('avatarBox').textContent = isAdmin ? '管' : '林';
+      document.getElementById('userNameLabel').textContent = isAdmin ? '宿管总控制台' : '学生端 (林子轩)';
+
+      if (isAdmin) {
+        document.getElementById('pageUserPortal').classList.add('hidden');
+        switchAdminPage(appState.adminPage);
+      } else {
+        hideAllAdminPages();
+        document.getElementById('pageUserPortal').classList.remove('hidden');
+        renderUserPortal();
+      }
+    }
+
+    function switchAdminPage(pageKey) {
+      appState.adminPage = pageKey;
+      ['workspace', 'dorms', 'users'].forEach(p => {
+        const tabBtn = document.getElementById(`tab${p.charAt(0).toUpperCase() + p.slice(1)}`);
+        if (p === pageKey) {
+          tabBtn.className = "py-3 border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-1.5 font-bold";
+        } else {
+          tabBtn.className = "py-3 border-b-2 border-transparent hover:text-slate-900 flex items-center space-x-1.5 font-medium";
+        }
+      });
+
+      hideAllAdminPages();
+      if (pageKey === 'workspace') {
+        document.getElementById('pageAdminWorkspace').classList.remove('hidden');
+        renderWorkspaceCanvas();
+      } else if (pageKey === 'dorms') {
+        document.getElementById('pageAdminDorms').classList.remove('hidden');
+        renderDormsPage();
+      } else if (pageKey === 'users') {
+        document.getElementById('pageAdminUsers').classList.remove('hidden');
+        renderUsersDirectory('ALL');
+      }
+    }
+
+    function hideAllAdminPages() {
+      document.getElementById('pageAdminWorkspace').classList.add('hidden');
+      document.getElementById('pageAdminDorms').classList.add('hidden');
+      document.getElementById('pageAdminUsers').classList.add('hidden');
+    }
+
+    // ==========================================
+    // A1. 工作区 (Workspace Canvas) 与双简略图渲染
+    // ==========================================
+    function renderWorkspaceCanvas() {
+      // 1. 渲染左侧的微型矩阵热力图 (补齐草图的简略图)
+      const miniHeatmap = document.getElementById('dormHeatmapMini');
+      miniHeatmap.innerHTML = '';
+      for (let i = 1; i <= 40; i++) {
+        let color = 'bg-emerald-400';
+        if (i === 14) color = 'bg-rose-500 animate-pulse'; // 模拟 3#402
+        if (i === 22) color = 'bg-amber-400';
+        miniHeatmap.innerHTML += `<div class="h-3 rounded-xs ${color}" title="宿舍节点 #${i}"></div>`;
+      }
+
+      // 2. 渲染主画布已挂载的槽位微件
+      const canvas = document.getElementById('canvasSlots');
+      canvas.innerHTML = `
+        <!-- 挂载的微件 A: 实时高危报警流 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-800">实时告警分流微件 (Alert Widget)</span>
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+          </div>
+          <div class="space-y-1.5" id="canvasAlertList">
+            <!-- 动态注入 -->
+          </div>
+        </div>
+
+        <!-- 挂载的微件 B: 全校用电负荷拓扑 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-800">空间负载状态概览</span>
+            <span class="text-3xs text-slate-400 font-mono">LIVE_FEED</span>
+          </div>
+          <p class="text-2xs text-slate-500">当前园区总电表负荷：142.6 kW · 处于绿线安全水位</p>
+          <div class="pt-4 flex items-end justify-between gap-1 h-20 border-b border-slate-200">
+            <div class="flex-1 bg-indigo-200 h-8 rounded-t-xs"></div>
+            <div class="flex-1 bg-indigo-300 h-12 rounded-t-xs"></div>
+            <div class="flex-1 bg-indigo-400 h-16 rounded-t-xs"></div>
+            <div class="flex-1 bg-indigo-600 h-10 rounded-t-xs"></div>
+            <div class="flex-1 bg-rose-400 h-18 rounded-t-xs" title="突增"></div>
+          </div>
+        </div>
+      `;
+
+      renderCanvasAlerts();
+    }
+
+    function renderCanvasAlerts() {
+      const box = document.getElementById('canvasAlertList');
+      if (!box) return;
+      box.innerHTML = appState.notifications.map(n => `
+        <div class="p-2.5 bg-white border border-slate-200 rounded-lg text-xs flex justify-between items-center shadow-2xs">
+          <div>
+            <div class="font-bold ${n.type === 'arrears' ? 'text-rose-600' : 'text-amber-600'}">${n.title}</div>
+            <div class="text-2xs text-slate-400">${n.text}</div>
+          </div>
+          <button onclick="openDormDetailDrawer('${n.dormId}')" class="px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded text-2xs font-semibold">排查</button>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // A2. 宿舍管理页面多态渲染
+    // ==========================================
+    function setDormView(mode) {
+      appState.dormViewMode = mode;
+      ['card', 'list', 'compact'].forEach(m => {
+        const btn = document.getElementById(`btnDorm${m.charAt(0).toUpperCase() + m.slice(1)}`);
+        btn.className = m === mode 
+          ? "px-2.5 py-1 bg-white text-indigo-600 rounded font-bold shadow-2xs"
+          : "px-2.5 py-1 text-slate-600 hover:text-slate-900";
+      });
+      renderDormsPage();
+    }
+
+    function renderDormsPage() {
+      // 渲染最近点击过的 X 个宿舍缓存
+      const recentBox = document.getElementById('dormsRecentList');
+      recentBox.innerHTML = appState.recentDormClicks.map(id => `
+        <button onclick="openDormDetailDrawer('${id}')" class="px-2 py-0.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded border border-slate-200 text-2xs">
+          ${id}
+        </button>
+      `).join('');
+
+      const container = document.getElementById('dormsGridContainer');
+      container.innerHTML = '';
+
+      if (appState.dormViewMode === 'card') {
+        container.className = "grid grid-cols-1 md:grid-cols-3 gap-4";
+        appState.dorms.forEach(d => {
+          const isDanger = d.status === 'danger';
+          container.innerHTML += `
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs hover:shadow-md transition space-y-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <h3 class="text-base font-bold text-slate-900">${d.id}</h3>
+                    <span class="text-2xs px-2 py-0.5 rounded-full font-bold ${isDanger ? 'bg-rose-50 text-rose-600 border border-rose-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}">
+                      ${d.statusText}
+                    </span>
+                  </div>
+                  <p class="text-2xs text-slate-400">${d.building} ${d.floor}</p>
+                </div>
+                <button onclick="openRechargeModal('${d.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-semibold rounded-lg">
+                  充值
+                </button>
+              </div>
+
+              <div class="p-3 bg-slate-50 rounded-xl flex justify-between items-center">
+                <div>
+                  <span class="text-3xs text-slate-400">可用电费</span>
+                  <div class="text-lg font-bold ${isDanger ? 'text-rose-600' : 'text-slate-900'}">¥ ${d.balance.toFixed(2)}</div>
+                </div>
+                <div class="text-right text-xs text-slate-600">
+                  <span class="text-3xs text-slate-400 block">入住人</span>
+                  ${d.users.join(', ')}
+                </div>
+              </div>
+
+              <button onclick="openDormDetailDrawer('${d.id}')" class="w-full py-1.5 text-xs text-slate-500 hover:text-indigo-600 bg-slate-50 rounded-lg font-medium flex items-center justify-center space-x-1">
+                <span>查阅详细柱状图与明细</span>
+                <span>&rarr;</span>
+              </button>
+            </div>
+          `;
+        });
+      } else if (appState.dormViewMode === 'list') {
+        container.className = "flex flex-col space-y-2";
+        appState.dorms.forEach(d => {
+          container.innerHTML += `
+            <div class="bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between shadow-2xs">
+              <div class="flex items-center space-x-4">
+                <span class="font-bold text-slate-900">${d.id}</span>
+                <span class="text-xs text-slate-400">${d.building} · ${d.floor}</span>
+                <span class="text-xs text-slate-600">人员: ${d.users.join(', ')}</span>
+              </div>
+              <div class="flex items-center space-x-4">
+                <span class="text-xs font-bold ${d.status === 'danger' ? 'text-rose-600' : 'text-slate-900'}">¥ ${d.balance.toFixed(2)}</span>
+                <button onclick="openDormDetailDrawer('${d.id}')" class="text-xs text-indigo-600 font-semibold hover:underline">查看详情</button>
+              </div>
+            </div>
+          `;
+        });
+      } else {
+        // 简略态 (微型气泡条)
+        container.className = "grid grid-cols-2 md:grid-cols-6 gap-2";
+        appState.dorms.forEach(d => {
+          container.innerHTML += `
+            <div onclick="openDormDetailDrawer('${d.id}')" class="cursor-pointer bg-white border border-slate-200 p-2.5 rounded-xl flex items-center justify-between hover:border-indigo-500">
+              <span class="text-xs font-bold text-slate-800">${d.id}</span>
+              <span class="w-2 h-2 rounded-full ${d.status === 'danger' ? 'bg-rose-500' : 'bg-emerald-500'}"></span>
+            </div>
+          `;
+        });
+      }
+    }
+
+    // ==========================================
+    // A3. 用户与空间级联台 (User Cascading Matrix)
+    // ==========================================
+    function filterUsersByCascader(building) {
+      renderUsersDirectory(building);
+    }
+
+    function renderUsersDirectory(buildingFilter) {
+      const grid = document.getElementById('usersDirectoryGrid');
+      let users = [];
+      appState.dorms.forEach(d => {
+        if (buildingFilter === 'ALL' || d.building === buildingFilter) {
+          d.users.forEach(u => {
+            users.push({ name: u, dormId: d.id, dormStatus: d.status, building: d.building });
+          });
+        }
+      });
+
+      document.getElementById('filteredUserCount').textContent = `匹配结果: ${users.length} 位学生`;
+      grid.innerHTML = users.map(u => `
+        <div class="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-2xs">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-sm">
+              ${u.name.slice(0, 1)}
+            </div>
+            <div>
+              <div class="flex items-center space-x-1.5">
+                <span class="font-bold text-slate-900 text-xs">${u.name}</span>
+                <span class="text-3xs px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 font-mono">${u.dormId}</span>
+              </div>
+              <span class="text-2xs text-slate-400">状态：${u.dormStatus === 'danger' ? '所在宿舍欠费' : '用电正常'}</span>
+            </div>
+          </div>
+          <!-- 嵌入原图组件：通知小图标 + 简略充值按钮 -->
+          <div class="flex items-center space-x-2">
+            <div class="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:text-indigo-600 relative">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              ${u.dormStatus === 'danger' ? '<span class="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-rose-500 rounded-full"></span>' : ''}
+            </div>
+            <button onclick="openRechargeModal('${u.dormId}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-2xs font-bold rounded-md">
+              代充
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // B1. 学生/用户端主页渲染 (User Portal)
+    // ==========================================
+    function renderUserPortal() {
+      const dorm = appState.dorms.find(d => d.id === '3#402');
+      const isDanger = dorm.balance < 0;
+
+      document.getElementById('portalBalanceDisplay').textContent = `¥ ${dorm.balance.toFixed(2)}`;
+      document.getElementById('portalBalanceDisplay').className = `text-3xl font-bold mt-0.5 ${isDanger ? 'text-rose-400' : 'text-emerald-400'}`;
+
+      const statusBadge = document.getElementById('portalDormStatusBadge');
+      statusBadge.className = `text-xs px-2 py-0.5 rounded-full font-bold ${isDanger ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`;
+      statusBadge.textContent = isDanger ? '欠费拉闸中' : '供电正常';
+
+      const noticeBox = document.getElementById('portalNoticeBox');
+      if (isDanger) {
+        noticeBox.className = "p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-1 block";
+        noticeBox.innerHTML = `
+          <div class="font-bold flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+            <span>已触发欠费断电</span>
+          </div>
+          <p class="text-2xs leading-relaxed">您的宿舍余额已透支，公摊电闸已断开，请充值后自动复电。</p>
+        `;
+      } else {
+        noticeBox.className = "p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 space-y-1 block";
+        noticeBox.innerHTML = `
+          <div class="font-bold text-emerald-700">供电正常</div>
+          <p class="text-2xs">当前剩余电费充足，请继续保持节约用电习惯。</p>
+        `;
+      }
+
+      // 绘制用电柱状图
+      const barsBox = document.getElementById('portalUsageBars');
+      barsBox.innerHTML = dorm.dailyUsage.map((val) => `
+        <div class="flex-1 bg-slate-200 hover:bg-indigo-500 rounded-t-xs transition relative group" style="height: ${val * 4}px">
+          <div class="hidden group-hover:block absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-3xs px-1 rounded">
+            ${val}度
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // 宿舍详细全量抽屉 (原图左上角「宿舍详细」)
+    // ==========================================
+    function openDormDetailDrawer(dormId) {
+      const dorm = appState.dorms.find(d => d.id === dormId);
+      if (!dorm) return;
+
+      if (!appState.recentDormClicks.includes(dormId)) {
+        appState.recentDormClicks.unshift(dormId);
+        if (appState.recentDormClicks.length > 3) appState.recentDormClicks.pop();
+        renderDormsPage();
+      }
+
+      document.getElementById('drawerDormTitle').textContent = `${dorm.id} 详细运行看板`;
+      document.getElementById('drawerDormUsers').textContent = `物理位置: ${dorm.building} ${dorm.floor} · 常驻人员: ${dorm.users.join(' / ')}`;
+      document.getElementById('drawerBalanceAmount').textContent = `¥ ${dorm.balance.toFixed(2)}`;
+
+      const tag = document.getElementById('drawerStatusTag');
+      tag.className = `text-2xs px-2 py-0.5 rounded-full font-bold ${dorm.status === 'danger' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`;
+      tag.textContent = dorm.statusText;
+
+      document.getElementById('drawerRechargeActionBtn').onclick = () => openRechargeModal(dorm.id);
+
+      // 渲染近两个月每日用电柱状图 (60 Days)
+      const chart = document.getElementById('drawerChartBars');
+      chart.innerHTML = dorm.dailyUsage.map(v => `
+        <div class="flex-1 bg-slate-200 hover:bg-indigo-600 rounded-t-xs transition" style="height: ${v * 4}px"></div>
+      `).join('');
+
+      renderDrawerLogs(dorm);
+      document.getElementById('dormDetailDrawer').classList.remove('hidden');
+    }
+
+    function closeDormDetailDrawer() {
+      document.getElementById('dormDetailDrawer').classList.add('hidden');
+    }
+
+    function switchDrawerTab(tab) {
+      appState.drawerTab = tab;
+      const deductBtn = document.getElementById('tabDeductBtn');
+      const rechargeBtn = document.getElementById('tabRechargeBtn');
+      if (tab === 'deduct') {
+        deductBtn.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600 px-3 font-bold";
+        rechargeBtn.className = "pb-2 text-slate-400 hover:text-slate-700 px-3";
+      } else {
+        rechargeBtn.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600 px-3 font-bold";
+        deductBtn.className = "pb-2 text-slate-400 hover:text-slate-700 px-3";
+      }
+      const dorm = appState.dorms.find(d => d.id === '3#402');
+      renderDrawerLogs(dorm);
+    }
+
+    function renderDrawerLogs(dorm) {
+      const logBox = document.getElementById('drawerLogList');
+      if (appState.drawerTab === 'deduct') {
+        logBox.innerHTML = dorm.deductions.map(item => `
+          <div class="py-2 flex justify-between items-center">
+            <div>
+              <div class="font-bold text-slate-800">${item.desc}</div>
+              <div class="text-3xs text-slate-400">${item.time}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-slate-900">${item.amount}</div>
+              <div class="text-3xs text-slate-400">余: ${item.balanceAfter}</div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        logBox.innerHTML = dorm.recharges.map(item => `
+          <div class="py-2 flex justify-between items-center">
+            <div>
+              <div class="font-bold text-slate-800">${item.channel}</div>
+              <div class="text-3xs text-slate-400">${item.time}</div>
+            </div>
+            <div class="font-bold text-emerald-600">${item.amount}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // ==========================================
+    // 通知中心抽屉
+    // ==========================================
+    function toggleNoticeDrawer(force) {
+      const drawer = document.getElementById('noticeDrawer');
+      if (force !== undefined) {
+        force ? drawer.classList.remove('hidden') : drawer.classList.add('hidden');
+      } else {
+        drawer.classList.toggle('hidden');
+      }
+      renderNoticeDrawerList();
+    }
+
+    function renderNoticeDrawerList() {
+      const list = document.getElementById('noticeDrawerList');
+      const badge = document.getElementById('noticeBadge');
+
+      if (appState.notifications.length === 0) {
+        list.innerHTML = '<div class="text-center text-xs text-slate-400 py-10">系统当前无任何异常告警</div>';
+        badge.classList.add('hidden');
+        return;
+      }
+
+      badge.classList.remove('hidden');
+      list.innerHTML = appState.notifications.map(n => `
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold ${n.type === 'arrears' ? 'text-rose-600' : 'text-amber-600'}">${n.title}</span>
+            <span class="text-3xs text-slate-400">${n.time}</span>
+          </div>
+          <p class="text-2xs text-slate-600">${n.text}</p>
+          <div class="flex justify-end">
+            ${n.type === 'arrears' 
+              ? `<button onclick="openRechargeModal('${n.dormId}')" class="px-2.5 py-1 bg-rose-600 text-white rounded-md text-2xs font-bold">立即缴费复电</button>`
+              : `<button onclick="openDormDetailDrawer('${n.dormId}')" class="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-2xs font-bold">查阅曲线</button>`
+            }
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==========================================
+    // 财务充值闭环执行器 (逻辑闭环关键)
+    // ==========================================
+    function openRechargeModal(dormId) {
+      appState.activeRechargeDormId = dormId;
+      document.getElementById('rechargeModalTarget').textContent = `充值目标账户：${dormId} 宿舍`;
+      document.getElementById('rechargeModal').classList.remove('hidden');
+      toggleNoticeDrawer(false);
+    }
+
+    function closeRechargeModal() {
+      document.getElementById('rechargeModal').classList.add('hidden');
+    }
+
+    function setModalAmount(val) {
+      document.getElementById('modalAmountInput').value = val;
+    }
+
+    function confirmRechargeAction() {
+      const amount = parseFloat(document.getElementById('modalAmountInput').value) || 0;
+      if (amount <= 0) return;
+
+      const dorm = appState.dorms.find(d => d.id === appState.activeRechargeDormId);
+      if (dorm) {
+        dorm.balance += amount;
+        dorm.status = 'normal';
+        dorm.statusText = '供电正常';
+        dorm.recharges.unshift({
+          channel: appState.currentRole === 'admin' ? '管理员台代充' : '学生微信在线缴费',
+          time: '刚刚',
+          amount: `+¥${amount.toFixed(2)}`
+        });
+
+        // 消除欠费告警 (闭环)
+        appState.notifications = appState.notifications.filter(n => !(n.dormId === dorm.id && n.type === 'arrears'));
+      }
+
+      closeRechargeModal();
+      closeDormDetailDrawer();
+
+      // 全局刷新
+      renderWorkspaceCanvas();
+      renderDormsPage();
+      renderUsersDirectory('ALL');
+      renderUserPortal();
+      renderNoticeDrawerList();
+
+      showToast(`已成功为 ${appState.activeRechargeDormId} 注入 ¥${amount.toFixed(2)}，欠费告警已解除，供电恢复！`);
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastText').textContent = text;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    function resetWorkspaceWidgets() {
+      renderWorkspaceCanvas();
+      showToast('工作区已重置为默认监控视图');
+    }
+
+    function mountWidget(type) {
+      showToast(`已将微件成功挂载到工作区`);
+    }
+
+    // 初始化运行
+    window.addEventListener('DOMContentLoaded', () => {
+      switchRole('admin');
+    });
+  </script>
+</body>
+</html>

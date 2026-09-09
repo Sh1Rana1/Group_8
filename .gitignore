@@ -1,0 +1,11 @@
+# 本地账号、学生与水电业务数据
+data/db.json
+data/*.tmp
+data/*-test-db.json
+
+# Dependencies and runtime files
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
