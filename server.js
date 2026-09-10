@@ -100,7 +100,7 @@ function serveFile(req,res,url) {
   if(pathname==='/'||pathname==='/login')pathname='/login.html';
   const protectedRole=pathname==='/admin.html'?'admin':pathname==='/student.html'?'student':null;
   if(protectedRole){const user=currentUser(req);if(!user||user.role!==protectedRole){res.writeHead(302,{Location:'/login.html'});return res.end();}}
-  const allowed=new Set(['/login.html','/admin.html','/student.html','/campus-data.js']);
+  const allowed=new Set(['/login.html','/admin.html','/student.html','/campus-data.js','/admin.js','/student-app.js','/login.js']);
   if(!allowed.has(pathname)) {res.writeHead(404);return res.end('Not found');}
   const file=path.join(ROOT,pathname.slice(1)); if(!fs.existsSync(file)){res.writeHead(404);return res.end('Not found')}
   const ext=path.extname(file); const type=ext==='.js'?'application/javascript; charset=utf-8':'text/html; charset=utf-8'; const content=fs.readFileSync(file);res.writeHead(200,{'Content-Type':type,'Content-Length':content.length,'Cache-Control':'no-cache'});res.end(content);

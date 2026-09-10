@@ -141,8 +141,11 @@ data/db.json
 
 ```text
 ├─ login.html          登录与学生注册界面
-├─ admin.html          管理员端
-├─ student.html        学生端
+├─ login.js            登录页交互逻辑
+├─ admin.html          管理员端（页面结构）
+├─ admin.js            管理员端交互逻辑
+├─ student.html        学生端（页面结构）
+├─ student-app.js      学生端交互逻辑
 ├─ campus-data.js      学生端数据状态与同步逻辑
 ├─ server.js           Node.js 后端服务
 ├─ seed-demo.js        演示数据库生成脚本（node seed-demo.js）

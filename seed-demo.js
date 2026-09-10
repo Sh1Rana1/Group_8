@@ -18,13 +18,17 @@ const FEE = 0.538; // 元/kWh，与 campus-data.js 一致
 const feeOf = (kwh) => +((kwh * FEE).toFixed(2));
 const nowIso = new Date().toISOString();
 
-// 每日用电明细（近6天 + 今日）
-function makeDaily(todayKwh) {
-  const base = [
-    ['09-03', 6.4], ['09-04', 7.1], ['09-05', 5.8],
-    ['09-06', 8.0], ['09-07', 6.9], ['09-08', 7.2],
-  ];
-  const daily = base.map(([date, kwh]) => ({ date, kwh, fee: feeOf(kwh) }));
+// 每日用电明细：过去 29 天 + 今日（共 30 组，供近 7/30 日趋势切换演示）
+function makeDaily(todayKwh, seed) {
+  const anchor = new Date(2026, 8, 8); // 09-08
+  const fmt = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const daily = [];
+  for (let back = 29; back >= 1; back--) {
+    const d = new Date(anchor);
+    d.setDate(d.getDate() - back);
+    const kwh = +((2.2 + (((29 - back) * 37 + seed * 13) % 14) / 10).toFixed(1));
+    daily.push({ date: fmt(d), kwh, fee: feeOf(kwh) });
+  }
   daily.push({ date: '今日', kwh: todayKwh, fee: feeOf(todayKwh) });
   return daily;
 }
@@ -128,11 +132,13 @@ students.forEach((s, i) => {
     salt: secured.salt, passwordHash: secured.hash, createdAt: nowIso });
   if (!db.rooms[roomKey]) {
     const st = roomStates[roomKey];
+    const daily = makeDaily(st.todayKwh, db.users.length);
+    const monthKwh = +daily.reduce((s, d) => s + d.kwh, 0).toFixed(1);
     db.rooms[roomKey] = { key: roomKey, building: s.building, floor: s.floor, room: s.room,
       label: `${s.building} ${s.floor}层 ${s.room}室`, studentIds: [],
       balance: st.balance, powerState: st.powerState, power: st.power,
-      todayKwh: st.todayKwh, monthKwh: st.monthKwh,
-      daily: makeDaily(st.todayKwh), recharges: st.recharges };
+      todayKwh: st.todayKwh, monthKwh,
+      daily, recharges: st.recharges };
   }
   db.rooms[roomKey].studentIds.push(id);
 });
