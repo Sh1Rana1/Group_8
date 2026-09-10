@@ -88,6 +88,11 @@
       return mutate(s => {
         const usage = Number(kwh);
         const fee = +(usage * 0.538).toFixed(2);
+        if (s.room.powerState !== 'normal') {
+          const map = {violation:'违规停电，无法用电', manual:'管理员已暂停供电，无法用电', arrears:'欠费停电，无法用电'};
+          s.notifications.unshift({id:'N'+Date.now(),type:'power',level:'warning',title:'停电中，无法用电',text:map[s.room.powerState] || '当前停电，无法用电。',time:'刚刚',read:false});
+          return;
+        }
         if (s.room.balance <= 0) {
           s.notifications.unshift({id:'N'+Date.now(),type:'balance',level:'danger',title:'余额不足，无法用电',text:'请先完成电费充值。',time:'刚刚',read:false});
           return;
