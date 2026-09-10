@@ -396,7 +396,8 @@
             <span class="text-3xs text-slate-400">${n.time}</span>
           </div>
           <p class="text-2xs text-slate-600">${n.text}</p>
-          <div class="flex justify-end">
+          <div class="flex justify-end gap-2">
+            <button onclick="adminMarkRead('${n.id}')" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-md text-2xs font-bold">标为已读</button>
             ${n.type === 'arrears' 
               ? `<button onclick="openRechargeModal('${n.dormId}')" class="px-2.5 py-1 bg-rose-600 text-white rounded-md text-2xs font-bold">立即缴费复电</button>`
               : `<button onclick="openDormDetailDrawer('${n.dormId}')" class="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-2xs font-bold">查阅曲线</button>`
@@ -409,6 +410,41 @@
     // ==========================================
     // 财务充值闭环执行器 (逻辑闭环关键)
     // ==========================================
+    async function adminMarkRead(id) {
+      try {
+        const resp = await fetch('/api/admin/notifications/read', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({notificationId:id})});
+        if (!resp.ok) { showToast('确认失败，请稍后重试'); return; }
+      } catch (_) { showToast('网络异常，稍后将自动同步'); return; }
+      appState.notifications = appState.notifications.filter(n => n.id !== id);
+      renderNoticeDrawerList();
+      renderWorkspaceCanvas();
+    }
+    function downloadCSV(filename, header, rows) {
+      const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const csv = '﻿' + [header, ...rows].map(r => r.map(esc).join(',')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+    }
+    function exportMeters() {
+      downloadCSV('电表台账.csv', ['宿舍', '电表编号', '实时功率', '今日用电', '余额', '供电状态'],
+        meterDevices.map(m => [m.room, m.id, m.power, m.today, m.balance.toFixed(2), m.state]));
+      showToast(`电表台账已导出（${meterDevices.length} 台）`);
+    }
+    function exportWaters() {
+      downloadCSV('水表台账.csv', ['位置', '设备编号', '今日用水', '累计订单', '通信', '阀门'],
+        waterDevices.map(m => [m.place, m.id, m.usage, m.orders, m.online ? '在线' : '离线', m.valve]));
+      showToast(`用水记录已导出（${waterDevices.length} 台）`);
+    }
+    function exportReport() {
+      downloadCSV('能耗报表.csv', ['宿舍', '住户', '余额', '今日用电', '供电状态'],
+        appState.dorms.map(d => {
+          const m = meterDevices.find(x => x.backendRoomKey === d.id);
+          return [d.id, d.users.join('/'), d.balance.toFixed(2), m ? m.today : '', d.statusText];
+        }));
+      showToast(`全校能耗报表已导出（${appState.dorms.length} 间）`);
+    }
     function openRechargeModal(dormId) {
       appState.activeRechargeDormId = dormId;
       document.getElementById('rechargeModalTarget').textContent = `充值目标账户：${dormId} 宿舍`;

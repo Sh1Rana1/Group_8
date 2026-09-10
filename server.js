@@ -73,11 +73,11 @@ async function api(req,res,url) {
       const allowedPower = new Set(['normal','manual','violation','arrears']);
       if(!allowedPower.has(body.next)) return json(res,400,{error:'无效的供电状态'});
       const room=db.rooms[body.roomKey]; if(!room)return json(res,404,{error:'宿舍不存在'}); room.powerState=body.next; room.power=body.next==='normal'?0.72:0;
-      room.studentIds.forEach(id=>{const data=db.studentData[id];if(!data)return;data.room.powerState=body.next;data.room.power=body.next==='normal'?0.72:0;data.updatedAt=Date.now();data.notifications.unshift({id:'N'+Date.now()+id,type:'power',level:body.next==='normal'?'success':'warning',title:body.next==='normal'?'供电已恢复':'管理员暂停供电',text:body.next==='normal'?'管理员已通过 NB-IoT 下发合闸指令。':'管理员已通过 NB-IoT 下发拉闸指令。',time:'刚刚',read:false})});
+      room.studentIds.forEach(id=>{const data=db.studentData[id];if(!data)return;data.room.powerState=body.next;data.room.power=body.next==='normal'?0.72:0;data.updatedAt=Date.now();(data.notifications||[]).forEach(n=>{if(!n.read&&n.type==='power')n.read=true});data.notifications.unshift({id:'N'+Date.now()+id,type:'power',level:body.next==='normal'?'success':'warning',title:body.next==='normal'?'供电已恢复':'管理员暂停供电',text:body.next==='normal'?'管理员已通过 NB-IoT 下发合闸指令。':'管理员已通过 NB-IoT 下发拉闸指令。',time:'刚刚',read:false})});
     } else if(body.type==='water'){
       if(body.next!=='开启'&&body.next!=='关闭') return json(res,400,{error:'无效的阀门状态'});
       const targets=db.users.filter(u=>u.role==='student'&&u.building===body.building&&u.floor===Number(body.floor)); if(targets.length===0) return json(res,404,{error:'楼层水表不存在'});
-      targets.forEach(u=>{const data=db.studentData[u.id];if(data){data.water.valve=body.next;data.updatedAt=Date.now()}});
+      targets.forEach(u=>{const data=db.studentData[u.id];if(data){data.water.valve=body.next;data.updatedAt=Date.now();data.notifications.unshift({id:'N'+Date.now()+u.id,type:'water',level:'info',title:body.next==='开启'?'直饮水阀门已开启':'直饮水阀门已关闭',text:`管理员已通过 NB-IoT 下发${body.next==='开启'?'开阀':'关阀'}指令（${body.building}${body.floor}层）。`,time:'刚刚',read:false})}});
     } else return json(res,400,{error:'无效的控制类型'});
     writeDb(db); return json(res,200,{ok:true});
   }
@@ -89,8 +89,16 @@ async function api(req,res,url) {
     room.recharges=[{id:'RC'+Date.now(),amount:+amount.toFixed(2),channel:'管理员台代充',time:'刚刚'},...(room.recharges||[])].slice(0,50);
     const wasArrears=room.powerState==='arrears';
     if(wasArrears&&room.balance>0){room.powerState='normal';room.power=0.72;}
-    room.studentIds.forEach(id=>{const data=db.studentData[id];if(!data)return;data.room.balance=room.balance;data.room.powerState=room.powerState;data.room.power=room.power;data.electricity={daily:room.daily||[],recharges:room.recharges||[]};data.updatedAt=Date.now();if(wasArrears){data.notifications.unshift({id:'N'+Date.now()+id,type:'power',level:'success',title:'充值复电成功',text:'管理员已代充，平台已通过 NB-IoT 下发合闸指令。',time:'刚刚',read:false})}});
+    room.studentIds.forEach(id=>{const data=db.studentData[id];if(!data)return;data.room.balance=room.balance;data.room.powerState=room.powerState;data.room.power=room.power;data.electricity={daily:room.daily||[],recharges:room.recharges||[]};data.updatedAt=Date.now();if(wasArrears){(data.notifications||[]).forEach(n=>{if(!n.read&&n.type==='power')n.read=true});data.notifications.unshift({id:'N'+Date.now()+id,type:'power',level:'success',title:'充值复电成功',text:'管理员已代充，平台已通过 NB-IoT 下发合闸指令。',time:'刚刚',read:false})}});
     writeDb(db); return json(res,200,{ok:true,balance:room.balance,powerState:room.powerState,power:room.power});
+  }
+  if (req.method==='POST'&&url.pathname==='/api/admin/notifications/read') {
+    const user=auth(req,res,'admin'); if(!user)return; const body=await readBody(req),db=readDb();
+    const nid=String(body.notificationId||''); if(!nid) return json(res,400,{error:'缺少通知编号'});
+    let found=false;
+    Object.values(db.studentData).forEach(data=>{(data.notifications||[]).forEach(n=>{if(n.id===nid){n.read=true;found=true;data.updatedAt=Date.now()}})});
+    if(!found) return json(res,404,{error:'通知不存在'});
+    writeDb(db); return json(res,200,{ok:true});
   }
   return json(res,404,{error:'接口不存在'});
 }

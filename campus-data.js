@@ -70,6 +70,12 @@
     } catch (_) {}
   }
 
+  function notifyOnce(s, type, level, title, text) {
+    const first = s.notifications[0];
+    if (first && !first.read && first.title === title) return;
+    s.notifications.unshift({ id: 'N' + Date.now(), type, level, title, text, time: '刚刚', read: false });
+  }
+
   window.CampusStore = {
     get: () => clone(state),
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
@@ -80,6 +86,7 @@
         s.electricity.recharges.unshift({id:'RC'+Date.now(), amount:value, channel:channelName || '在线充值', time:'刚刚'});
         if (s.room.balance > 0 && s.room.powerState === 'arrears') {
           s.room.powerState = 'normal';
+          s.notifications.forEach(n => { if (!n.read && n.type === 'power' && (n.level === 'danger' || n.level === 'warning')) n.read = true; });
           s.notifications.unshift({id:'N'+Date.now(),type:'power',level:'success',title:'充值复电成功',text:'充值已到账，平台已通过 NB-IoT 下发合闸指令。',time:'刚刚',read:false});
         }
       });
@@ -90,11 +97,11 @@
         const fee = +(usage * 0.538).toFixed(2);
         if (s.room.powerState !== 'normal') {
           const map = {violation:'违规停电，无法用电', manual:'管理员已暂停供电，无法用电', arrears:'欠费停电，无法用电'};
-          s.notifications.unshift({id:'N'+Date.now(),type:'power',level:'warning',title:'停电中，无法用电',text:map[s.room.powerState] || '当前停电，无法用电。',time:'刚刚',read:false});
+          notifyOnce(s, 'power', 'warning', '停电中，无法用电', map[s.room.powerState] || '当前停电，无法用电。');
           return;
         }
         if (s.room.balance <= 0) {
-          s.notifications.unshift({id:'N'+Date.now(),type:'balance',level:'danger',title:'余额不足，无法用电',text:'请先完成电费充值。',time:'刚刚',read:false});
+          notifyOnce(s, 'balance', 'danger', '余额不足，无法用电', '请先完成电费充值。');
           return;
         }
         s.room.todayKwh = +(s.room.todayKwh + usage).toFixed(1);
