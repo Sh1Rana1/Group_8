@@ -148,23 +148,15 @@
         <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
           <div class="p-5 border-b border-slate-100 flex flex-wrap justify-between items-center gap-3">
             <div><h3 class="text-sm font-bold text-slate-900">全校能耗统计报表</h3><p class="text-2xs text-slate-400 mt-1">近 7 日水电消耗趋势</p></div>
-            <div class="flex items-center gap-4 text-2xs text-slate-500"><span><i class="inline-block w-2 h-2 rounded-full bg-indigo-500 mr-1"></i>用电量</span><span><i class="inline-block w-2 h-2 rounded-full bg-sky-400 mr-1"></i>用水量</span><select class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5"><option>近 7 日</option><option>近 30 日</option></select></div>
+            <div class="flex items-center gap-4 text-2xs text-slate-500"><span><i class="inline-block w-2 h-2 rounded-full bg-indigo-500 mr-1"></i>用电量</span><select id="energyRangeSelect" onchange="renderEnergyChart(this.value)" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5"><option value="7">近 7 日</option><option value="30">近 30 日</option></select></div>
           </div>
           <div class="p-5">
-            <div class="grid grid-cols-2 gap-4 mb-5"><div><span class="text-2xs text-slate-400">本周累计用电</span><p class="text-lg font-bold text-slate-800 mt-1">0.0 <span class="text-xs text-slate-400">kWh</span></p></div><div><span class="text-2xs text-slate-400">本周累计用水</span><p class="text-lg font-bold text-slate-800 mt-1">0.0 <span class="text-xs text-slate-400">m³</span></p></div></div>
+            <div class="grid grid-cols-2 gap-4 mb-5"><div><span class="text-2xs text-slate-400">区间累计用电</span><p class="text-lg font-bold text-slate-800 mt-1" id="energyTotalKwh">0.0 <span class="text-xs text-slate-400">kWh</span></p></div><div><span class="text-2xs text-slate-400">本月累计用水</span><p class="text-lg font-bold text-slate-800 mt-1" id="energyTotalWater">0.0 <span class="text-xs text-slate-400">m³</span></p></div></div>
             <div class="relative h-52 border-l border-b border-slate-200 ml-8">
               <div class="absolute inset-0 flex flex-col justify-between pointer-events-none"><i class="border-t border-dashed border-slate-100"></i><i class="border-t border-dashed border-slate-100"></i><i class="border-t border-dashed border-slate-100"></i><i class="border-t border-dashed border-slate-100"></i></div>
-              <div class="absolute inset-x-3 bottom-0 top-2 flex items-end justify-around gap-3">
-                <div class="h-full flex items-end gap-1"><i class="w-3 h-[68%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[45%] bg-sky-300 rounded-t"></i></div>
-                <div class="h-full flex items-end gap-1"><i class="w-3 h-[72%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[58%] bg-sky-300 rounded-t"></i></div>
-                <div class="h-full flex items-end gap-1"><i class="w-3 h-[59%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[62%] bg-sky-300 rounded-t"></i></div>
-                <div class="h-full flex items-end gap-1"><i class="w-3 h-[81%] bg-indigo-500 rounded-t"></i><i class="w-3 h-[49%] bg-sky-300 rounded-t"></i></div>
-                <div class="h-full flex items-end gap-1"><i class="w-3 h-[74%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[67%] bg-sky-400 rounded-t"></i></div>
-                <div class="h-full flex items-end gap-1"><i class="w-3 h-[66%] bg-indigo-400 rounded-t"></i><i class="w-3 h-[55%] bg-sky-300 rounded-t"></i></div>
-                <div class="h-full flex items-end gap-1"><i class="w-3 h-[77%] bg-indigo-600 rounded-t"></i><i class="w-3 h-[64%] bg-sky-500 rounded-t"></i></div>
-              </div>
+              <div id="energyChartBars" class="absolute inset-x-3 bottom-0 top-2 flex items-end gap-1"></div>
             </div>
-            <div class="grid grid-cols-7 ml-8 mt-2 text-center text-3xs text-slate-400"><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span><span>周一</span><span>今日</span></div>
+            <div id="energyChartLabels" class="grid ml-8 mt-2 text-center text-3xs text-slate-400"></div>
           </div>
         </div>
 
@@ -209,9 +201,9 @@
     <!-- ---------------------------------------------------- -->
     <div id="pageAdminWater" class="hidden space-y-5">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-4"><div><div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-sky-500"></span><span class="text-xs font-semibold text-sky-600">NB-IoT 直饮水表实时在线</span></div><h2 class="text-2xl font-bold text-slate-900">用水管理</h2><p class="text-xs text-slate-400 mt-1">楼层直饮水计量、预付费扣款与远程阀控</p></div><div class="flex gap-2"><button onclick="showToast('用水记录已导出')" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600">导出记录</button><button onclick="renderWaterPage(); showToast('水表状态已同步')" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-100">同步设备</button></div></div>
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4"><div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs text-slate-400">NB-IoT 水表</p><div class="flex justify-between items-end mt-2"><b id="waterMeterCount" class="text-2xl">0 <small class="text-xs text-slate-400">台</small></b><span id="waterOnlineCount" class="text-2xs text-emerald-600">0 台在线</span></div></div><div class="bg-gradient-to-br from-sky-500 to-cyan-600 text-white rounded-2xl p-5"><p class="text-xs text-sky-50">今日直饮水量</p><div class="flex justify-between items-end mt-2"><b class="text-2xl"><span id="waterTodayVolume">0.00</span> <small class="text-xs text-sky-100">m³</small></b><span id="waterTodayOrders" class="text-2xs text-sky-50">0 笔</span></div></div><div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs text-slate-400">今日扣费</p><div class="flex justify-between items-end mt-2"><b class="text-2xl"><span id="waterTodayFee">¥0.00</span></b><span class="text-2xs text-emerald-600">可追溯 100%</span></div></div><div class="bg-white border border-rose-200 rounded-2xl p-5"><p class="text-xs text-slate-400">异常设备</p><div class="flex justify-between items-end mt-2"><b class="text-2xl text-rose-600"><span id="waterAbnormalCount">0</span> <small class="text-xs text-slate-400">台</small></b><span id="waterOfflineCount" class="text-2xs text-rose-600">0 台停用</span></div></div></div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4"><div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs text-slate-400">NB-IoT 水表</p><div class="flex justify-between items-end mt-2"><b id="waterMeterCount" class="text-2xl">0 <small class="text-xs text-slate-400">台</small></b><span class="text-2xs text-emerald-600" id="waterMeterOnline">0 台在线</span></div></div><div class="bg-gradient-to-br from-sky-500 to-cyan-600 text-white rounded-2xl p-5"><p class="text-xs text-sky-50">本月直饮水量</p><div class="flex justify-between items-end mt-2"><b class="text-2xl" id="waterTotalUsage">0.00 <small class="text-xs text-sky-100">m³</small></b><span class="text-2xs text-sky-50" id="waterTotalOrders">0 笔</span></div></div><div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs text-slate-400">本月扣费</p><div class="flex justify-between items-end mt-2"><b class="text-2xl" id="waterTotalFee">¥0.00</b><span class="text-2xs text-emerald-600">可追溯 100%</span></div></div><div class="bg-white border border-rose-200 rounded-2xl p-5"><p class="text-xs text-slate-400">异常设备</p><div class="flex justify-between items-end mt-2"><b class="text-2xl text-rose-600" id="waterAbnormalCount">0 <small class="text-xs text-slate-400">台</small></b><span class="text-2xs text-rose-600" id="waterStoppedCount">0 台停用</span></div></div></div>
       <div class="bg-white border border-slate-200 rounded-2xl p-5"><div class="flex justify-between items-start gap-4"><div><h3 class="text-sm font-bold text-slate-900">平台计费与阀控流程</h3><p class="text-2xs text-slate-400 mt-1">身份识别和扣费均在平台完成，水表只执行阀控与计量回传</p></div><span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-2xs font-bold whitespace-nowrap">支付链路可追溯</span></div><div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-5"><div class="bg-slate-50 rounded-xl p-3 border border-slate-100"><b class="text-xs">01 扫码取水</b><p class="text-2xs text-slate-400 mt-1">学生扫描设备二维码</p></div><div class="bg-slate-50 rounded-xl p-3 border border-slate-100"><b class="text-xs">02 平台鉴权</b><p class="text-2xs text-slate-400 mt-1">核验身份与账户余额</p></div><div class="bg-indigo-50 rounded-xl p-3 border border-indigo-100"><b class="text-xs text-indigo-700">03 下发开阀</b><p class="text-2xs text-indigo-400 mt-1">经 NB-IoT 发送指令</p></div><div class="bg-sky-50 rounded-xl p-3 border border-sky-100"><b class="text-xs text-sky-700">04 计量回传</b><p class="text-2xs text-sky-500 mt-1">实时上报实际用量</p></div><div class="bg-emerald-50 rounded-xl p-3 border border-emerald-100"><b class="text-xs text-emerald-700">05 精准扣费</b><p class="text-2xs text-emerald-500 mt-1">平台结算并留存流水</p></div></div></div>
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5"><div class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl overflow-hidden"><div class="p-4 border-b border-slate-100 flex justify-between items-center"><div><h3 class="text-sm font-bold">楼层直饮水表</h3><p class="text-2xs text-slate-400 mt-1">一层一表，统一计量与阀控</p></div><input id="waterSearch" oninput="renderWaterPage()" placeholder="搜索设备 / 安装位置" class="w-56 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"></div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-slate-50 text-slate-500"><tr><th class="px-4 py-3">设备 / 位置</th><th class="px-4 py-3">今日用水</th><th class="px-4 py-3">累计订单</th><th class="px-4 py-3">通信</th><th class="px-4 py-3">阀门</th><th class="px-4 py-3 text-right">操作</th></tr></thead><tbody id="waterTableBody" class="divide-y divide-slate-100"></tbody></table></div></div><div class="bg-white border border-slate-200 rounded-2xl overflow-hidden"><div class="p-4 border-b border-slate-100"><h3 class="text-sm font-bold">实时取水记录</h3><p class="text-2xs text-slate-400 mt-1">平台鉴权与预付费流水</p></div><div id="waterOrderList" class="p-4 space-y-3"></div></div></div>
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5"><div class="xl:col-span-2 bg-white border border-slate-200 rounded-2xl overflow-hidden"><div class="p-4 border-b border-slate-100 flex justify-between items-center"><div><h3 class="text-sm font-bold">楼层直饮水表</h3><p class="text-2xs text-slate-400 mt-1">一层一表，统一计量与阀控</p></div><input id="waterSearch" oninput="renderWaterPage()" placeholder="搜索设备 / 安装位置" class="w-56 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs"></div><div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-slate-50 text-slate-500"><tr><th class="px-4 py-3">设备 / 位置</th><th class="px-4 py-3">本月用水</th><th class="px-4 py-3">累计订单</th><th class="px-4 py-3">通信</th><th class="px-4 py-3">阀门</th><th class="px-4 py-3 text-right">操作</th></tr></thead><tbody id="waterTableBody" class="divide-y divide-slate-100"></tbody></table></div></div><div class="bg-white border border-slate-200 rounded-2xl overflow-hidden"><div class="p-4 border-b border-slate-100"><h3 class="text-sm font-bold">实时取水记录</h3><p class="text-2xs text-slate-400 mt-1">平台鉴权与预付费流水</p></div><div id="waterOrderList" class="p-4 space-y-3"></div></div></div>
     </div>
 
     <!-- ---------------------------------------------------- -->
@@ -391,8 +383,6 @@
       adminPage: 'workspace',    // 'workspace' | 'dorms' | 'users'
       dormViewMode: 'card',      // 'card' | 'list' | 'compact'
       activeRechargeDormId: '',
-      activeDormDetailId: '',
-      userFilter: 'ALL',
       recentDormClicks: [],
       drawerTab: 'deduct',
 
@@ -455,7 +445,7 @@
         renderWaterPage();
       } else if (pageKey === 'users') {
         document.getElementById('pageAdminUsers').classList.remove('hidden');
-        renderUsersDirectory(appState.userFilter || 'ALL');
+        renderUsersDirectory('ALL');
       }
     }
 
@@ -471,6 +461,59 @@
     // ==========================================
     function renderWorkspaceCanvas() {
       renderCanvasAlerts();
+      renderEnergyChart(document.getElementById('energyRangeSelect')?.value || '7');
+    }
+
+    function renderEnergyChart(days) {
+      const barsBox = document.getElementById('energyChartBars');
+      const labelsBox = document.getElementById('energyChartLabels');
+      if (!barsBox) return;
+      const daysNum = Number(days) || 7;
+
+      // 聚合各宿舍每日用电量 (kWh)
+      const dailyMap = new Map();
+      appState.dorms.forEach(dorm => {
+        (dorm.daily || []).forEach(item => {
+          dailyMap.set(item.date, (dailyMap.get(item.date) || 0) + Number(item.kwh || 0));
+        });
+      });
+
+      // 生成最近 days 天的日期序列 (MM-DD)，最后一天标记为「今日」
+      const labels = [];
+      const now = new Date();
+      for (let i = daysNum - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        labels.push(`${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      }
+      const values = labels.map(l => dailyMap.get(l) || 0);
+      const totalKwh = values.reduce((a, b) => a + b, 0);
+      const hasData = values.some(v => v > 0);
+
+      if (labelsBox) {
+        labelsBox.style.gridTemplateColumns = `repeat(${daysNum}, minmax(0, 1fr))`;
+        labelsBox.innerHTML = labels.map((l, i) => `<span>${i === daysNum - 1 ? '今日' : l.slice(3)}</span>`).join('');
+      }
+
+      const totalKwhEl = document.getElementById('energyTotalKwh');
+      if (totalKwhEl) totalKwhEl.innerHTML = `${totalKwh.toFixed(1)} <span class="text-xs text-slate-400">kWh</span>`;
+
+      const totalWaterEl = document.getElementById('energyTotalWater');
+      if (totalWaterEl) {
+        const liters = Number(window._totalWaterLiters || 0);
+        totalWaterEl.innerHTML = `${(liters / 1000).toFixed(2)} <span class="text-xs text-slate-400">m³</span>`;
+      }
+
+      if (!hasData) {
+        barsBox.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xs text-slate-400">暂无能耗数据</div>';
+        return;
+      }
+
+      const maxVal = Math.max(...values, 1);
+      barsBox.innerHTML = values.map(v => {
+        const h = Math.max(3, Math.round((v / maxVal) * 100));
+        return `<div class="flex-1 flex items-end h-full"><div class="w-full bg-indigo-400 hover:bg-indigo-600 rounded-t transition" style="height:${h}%" title="${v.toFixed(1)} kWh"></div></div>`;
+      }).join('');
     }
 
     function renderCanvasAlerts() {
@@ -533,7 +576,6 @@
     // A3. 用户与空间级联台 (User Cascading Matrix)
     // ==========================================
     function filterUsersByCascader(building) {
-      appState.userFilter = building;
       document.querySelectorAll('[data-building]').forEach(button => {
         const active = button.dataset.building === building;
         button.className = active
@@ -632,7 +674,6 @@
     function openDormDetailDrawer(dormId) {
       const dorm = appState.dorms.find(d => d.id === dormId);
       if (!dorm) return;
-      appState.activeDormDetailId = dormId;
 
       if (!appState.recentDormClicks.includes(dormId)) {
         appState.recentDormClicks.unshift(dormId);
@@ -675,13 +716,12 @@
         rechargeBtn.className = "pb-2 border-b-2 border-indigo-600 text-indigo-600 px-3 font-bold";
         deductBtn.className = "pb-2 text-slate-400 hover:text-slate-700 px-3";
       }
-      const dorm = appState.dorms.find(d => d.id === appState.activeDormDetailId);
+      const dorm = appState.dorms.find(d => d.id === '3#402');
       renderDrawerLogs(dorm);
     }
 
     function renderDrawerLogs(dorm) {
       const logBox = document.getElementById('drawerLogList');
-      if (!dorm) { logBox.innerHTML = '<div class="py-8 text-center text-xs text-slate-400">暂无该宿舍流水记录</div>'; return; }
       if (appState.drawerTab === 'deduct') {
         logBox.innerHTML = dorm.deductions.map(item => `
           <div class="py-2 flex justify-between items-center">
@@ -767,59 +807,62 @@
       document.getElementById('modalAmountInput').value = val;
     }
 
-    async function confirmRechargeAction() {
+    function confirmRechargeAction() {
       const amount = parseFloat(document.getElementById('modalAmountInput').value) || 0;
-      if (amount <= 0 || !Number.isFinite(amount)) { showToast('请输入有效金额'); return; }
+      if (amount <= 0) return;
 
       const dorm = appState.dorms.find(d => d.id === appState.activeRechargeDormId);
-      if (!dorm) { showToast('宿舍不存在，无法充值'); return; }
-      let restored = true;
-      try {
-        const resp = await fetch('/api/admin/recharge', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({roomKey:dorm.id, amount})});
-        const data = await resp.json().catch(()=>({}));
-        if (!resp.ok) { showToast(data.error || '充值失败，请稍后重试'); return; }
-        dorm.balance = data.balance;
-        restored = data.powerState === 'normal';
-        dorm.status = restored ? 'normal' : 'danger';
-        dorm.statusText = restored ? '供电正常' : (data.powerState === 'manual' ? '手动停电' : data.powerState === 'violation' ? '违规停电' : '欠费断电');
+      if (dorm) {
+        dorm.balance = +(dorm.balance + amount).toFixed(2);
+        dorm.status = 'normal';
+        dorm.statusText = '供电正常';
         dorm.recharges.unshift({
-          channel: '管理员台代充',
+          channel: appState.currentRole === 'admin' ? '管理员台代充' : '学生微信在线缴费',
           time: '刚刚',
           amount: `+¥${amount.toFixed(2)}`
         });
+
+        // 同步对应电表的余额与状态
         const meter = meterDevices.find(m => m.backendRoomKey === dorm.id);
-        if (meter) { meter.balance = dorm.balance; meter.filter = restored ? 'normal' : 'off'; meter.state = restored ? '正常供电' : '手动停电'; meter.power = restored ? '0.72 kW' : '0.00 kW'; }
-        if (restored) appState.notifications = appState.notifications.filter(n => !(n.dormId === dorm.id && n.type === 'arrears'));
-      } catch (_) {
-        dorm.balance += amount;
-        dorm.status = 'normal';
-        dorm.statusText = '供电正常';
-        dorm.recharges.unshift({channel:'管理员台代充（本地，未同步）',time:'刚刚',amount:`+¥${amount.toFixed(2)}`});
-        showToast('网络异常，已本地记账，刷新后可能丢失');
-        return;
+        if (meter) {
+          meter.balance = dorm.balance;
+          meter.filter = 'normal';
+          meter.state = '正常供电';
+        }
+
+        // 消除欠费告警 (闭环)
+        appState.notifications = appState.notifications.filter(n => !(n.dormId === dorm.id && n.type === 'arrears'));
+
+        // 持久化到后端数据库
+        if (dorm.backendRegistered) {
+          fetch('/api/admin/recharge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomKey: dorm.id, amount })
+          }).then(r => r.json()).then(() => loadRegisteredStudents()).catch(() => {});
+        } else if (dorm.id === '3#402' && window.CampusStore) {
+          CampusStore.recharge(amount, '管理员台代充');
+        }
       }
 
       closeRechargeModal();
       closeDormDetailDrawer();
 
-      // 全局刷新（保留用户筛选）
+      // 全局刷新
       renderWorkspaceCanvas();
       renderDormsPage();
-      renderUsersDirectory(appState.userFilter || 'ALL');
+      renderUsersDirectory('ALL');
       if (document.getElementById('portalBalanceDisplay')) renderUserPortal();
       renderNoticeDrawerList();
-      loadRegisteredStudents();
 
-      showToast(restored ? `已成功为 ${appState.activeRechargeDormId} 注入 ¥${amount.toFixed(2)}，欠费告警已解除，供电恢复！` : `已成功为 ${appState.activeRechargeDormId} 注入 ¥${amount.toFixed(2)}，当前仍为${dorm.statusText}，需手动合闸恢复！`);
+      showToast(`已成功为 ${appState.activeRechargeDormId} 注入 ¥${amount.toFixed(2)}，欠费告警已解除，供电恢复！`);
     }
 
-    let toastTimer = null;
     function showToast(text) {
       const toast = document.getElementById('toast');
       document.getElementById('toastText').textContent = text;
       toast.classList.remove('hidden');
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.add('hidden'), 3500);
+      setTimeout(() => toast.classList.add('hidden'), 3500);
     }
 
     function resetWorkspaceWidgets() {
@@ -870,7 +913,7 @@
       if (appState.adminPage === 'workspace') renderWorkspaceCanvas();
       if (appState.adminPage === 'meters') renderMeterPage();
       if (appState.adminPage === 'water') renderWaterPage();
-      if (appState.adminPage === 'users') renderUsersDirectory(appState.userFilter || 'ALL');
+      if (appState.adminPage === 'users') renderUsersDirectory('ALL');
       renderNoticeDrawerList();
     }
     async function loadRegisteredStudents() {
@@ -885,39 +928,27 @@
         payload.rooms.forEach(room => {
           const occupants = payload.students.filter(student => student.roomKey === room.key);
           const roomNormal=(room.powerState||'normal')==='normal';
-          appState.dorms.push({id:room.key,building:room.building,floor:`${room.floor}层`,balance:room.balance||0,status:roomNormal?'normal':'danger',statusText:roomNormal?'供电正常':'暂停供电',users:occupants.map(item=>item.name),dailyUsage:Array(20).fill(0),deductions:[],recharges:[],backendRegistered:true});
+          appState.dorms.push({id:room.key,building:room.building,floor:`${room.floor}层`,balance:room.balance||0,status:roomNormal?'normal':'danger',statusText:roomNormal?'供电正常':'暂停供电',users:occupants.map(item=>item.name),dailyUsage:Array(20).fill(0),daily:room.daily||[],deductions:[],recharges:[],backendRegistered:true});
           meterDevices.push({id:`EM-NB-${room.key}`,room:room.label,power:roomNormal?`${Number(room.power||0).toFixed(2)} kW`:'0.00 kW',today:`${Number(room.todayKwh||0).toFixed(1)} kWh`,balance:room.balance||0,online:true,state:roomNormal?'正常供电':'手动停电',filter:roomNormal?'normal':'off',backendRegistered:true,backendRoomKey:room.key});
         });
         const floors = new Map();
-        payload.students.forEach(student => {
-          const key = `${student.building}-${student.floor}`;
-          if (!floors.has(key)) floors.set(key, {students: [], waterUsage: 0, orders: 0, fee: 0, online: true, valve: student.waterValve, meterId: student.waterMeterId, building: student.building, floor: student.floor});
-          const agg = floors.get(key);
-          agg.students.push(student);
-          agg.waterUsage += Number(student.waterUsage || 0);
-          agg.orders += (student.waterRecords || []).length;
-          agg.fee += (student.waterRecords || []).reduce((s, r) => s + Number(r.amount || 0), 0);
-          if (student.waterOnline === false) agg.online = false;
-          agg.valve = student.waterValve;
-          agg.meterId = student.waterMeterId || agg.meterId;
-        });
-        floors.forEach(agg => waterDevices.push({id:agg.meterId||`WM-NB-${agg.building}-${agg.floor}F`,place:`${agg.building} ${agg.floor}层`,usage:`${agg.waterUsage.toFixed(1)} L`,orders:agg.orders,online:agg.online,valve:agg.valve,backendRegistered:true,backendFloor:{building:agg.building,floor:agg.floor}}));
-        const waterOnline = [...floors.values()].filter(f => f.online).length;
-        const waterOrders = [...floors.values()].reduce((s, f) => s + f.orders, 0);
-        const waterFee = [...floors.values()].reduce((s, f) => s + f.fee, 0);
-        const waterAbnormal = [...floors.values()].filter(f => !f.online).length;
-        const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-        setText('waterOnlineCount', `${waterOnline} 台在线`);
-        setText('waterTodayVolume', ([...floors.values()].reduce((s, f) => s + f.waterUsage, 0) / 1000).toFixed(2));
-        setText('waterTodayOrders', `${waterOrders} 笔`);
-        setText('waterTodayFee', `¥${waterFee.toFixed(2)}`);
-        setText('waterAbnormalCount', String(waterAbnormal));
-        setText('waterOfflineCount', `${waterAbnormal} 台停用`);
+        payload.students.forEach(student => floors.set(`${student.building}-${student.floor}`, student));
+        floors.forEach(student => waterDevices.push({id:student.waterMeterId||`WM-NB-${student.building}-${student.floor}F`,place:`${student.building} ${student.floor}层`,usage:`${student.waterUsage.toFixed(1)} L`,orders:(student.waterRecords||[]).length,online:student.waterOnline,valve:student.waterValve,backendRegistered:true,backendFloor:{building:student.building,floor:student.floor}}));
         const studentTotal = payload.students.length;
         const abnormalTotal = payload.students.filter(student => student.powerState !== 'normal').length;
         const totalElectricity = payload.rooms.reduce((sum, room) => sum + Number(room.todayKwh || 0), 0);
         const totalWaterLiters = payload.students.reduce((sum, student) => sum + Number(student.waterUsage || 0), 0);
-        const alerts = payload.students.flatMap(student => (student.notifications || []).filter(item => !item.read && (item.level === 'danger' || item.level === 'warning')).map(item => ({...item, dormId: student.roomKey})));
+        window._totalWaterLiters = totalWaterLiters;
+        const onlineWaters = waterDevices.filter(d => d.online).length;
+        const stoppedWaters = waterDevices.filter(d => d.valve !== '开启').length;
+        const totalWaterFee = registeredWaterOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+        document.getElementById('waterMeterOnline').textContent = `${onlineWaters} 台在线`;
+        document.getElementById('waterTotalUsage').innerHTML = `${(totalWaterLiters / 1000).toFixed(2)} <small class="text-xs text-sky-100">m³</small>`;
+        document.getElementById('waterTotalOrders').textContent = `${registeredWaterOrders.length} 笔`;
+        document.getElementById('waterTotalFee').textContent = `¥${totalWaterFee.toFixed(2)}`;
+        document.getElementById('waterAbnormalCount').innerHTML = `${floors.size - onlineWaters} <small class="text-xs text-slate-400">台</small>`;
+        document.getElementById('waterStoppedCount').textContent = `${stoppedWaters} 台停用`;
+        const alerts = payload.students.flatMap(student => student.notifications || []).filter(item => !item.read && (item.level === 'danger' || item.level === 'warning'));
         document.getElementById('registeredStudentTotal').textContent = `${studentTotal} 人`;
         document.getElementById('registeredAbnormalTotal').textContent = `${abnormalTotal} 人`;
         document.getElementById('allStudentCount').textContent = `${studentTotal}人`;
@@ -927,13 +958,13 @@
         document.getElementById('overviewWater').innerHTML = `${(totalWaterLiters / 1000).toFixed(2)} <span class="text-sm font-medium">m³</span>`;
         document.getElementById('overviewDevices').innerHTML = `${payload.rooms.length + floors.size} <span class="text-sm font-medium text-slate-400">台</span>`;
         document.getElementById('overviewAlerts').innerHTML = `${alerts.length} <span class="text-sm font-medium text-slate-400">条</span>`;
-        appState.notifications = alerts.map(item => ({id:item.id,dormId:item.dormId || '',type:item.level==='danger'?'arrears':'anomaly',title:item.title,text:item.text,time:item.time}));
+        appState.notifications = alerts.map(item => ({id:item.id,dormId:'',type:item.level==='danger'?'arrears':'anomaly',title:item.title,text:item.text,time:item.time}));
         const buildingCounts = new Map();
         payload.students.forEach(student => buildingCounts.set(student.building, (buildingCounts.get(student.building) || 0) + 1));
         document.getElementById('registeredBuildingFilters').innerHTML = buildingCounts.size ? [...buildingCounts].map(([building,count]) => `<button data-building="${building}" onclick="filterUsersByCascader('${building}')" class="w-full text-left p-2.5 rounded-lg hover:bg-slate-50 text-slate-600 flex justify-between transition"><span>${building}</span><span class="text-slate-400">${count}人</span></button>`).join('') : '<p class="p-2 text-slate-400">暂无注册数据</p>';
         if (appState.adminPage === 'meters') renderMeterPage();
         if (appState.adminPage === 'water') renderWaterPage();
-        if (appState.adminPage === 'users') renderUsersDirectory(appState.userFilter || 'ALL');
+        if (appState.adminPage === 'users') renderUsersDirectory('ALL');
         if (appState.adminPage === 'workspace') renderWorkspaceCanvas();
         renderNoticeDrawerList();
       } catch (_) {}

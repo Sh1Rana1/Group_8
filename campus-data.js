@@ -36,6 +36,8 @@
     ]
   };
 
+  const POWER_LIMIT_KW = 2.0; // 瞬时功率阈值(kW)，超过即判定为违规用电（恶性负载）
+
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
   function load() {
     try {
@@ -86,20 +88,25 @@
     },
     addElectricUsage(kwh) {
       return mutate(s => {
-        const usage = Number(kwh);
-        const fee = +(usage * 0.538).toFixed(2);
         if (s.room.powerState !== 'normal') {
-          const map = {violation:'违规停电，无法用电', manual:'管理员已暂停供电，无法用电', arrears:'欠费停电，无法用电'};
-          s.notifications.unshift({id:'N'+Date.now(),type:'power',level:'warning',title:'停电中，无法用电',text:map[s.room.powerState] || '当前停电，无法用电。',time:'刚刚',read:false});
+          s.notifications.unshift({id:'N'+Date.now(),type:'power',level:'warning',title:'无法用电',text:'当前宿舍已断电，无法产生用电。',time:'刚刚',read:false});
           return;
         }
+        const usage = Number(kwh);
+        const power = +(0.35 + usage * 0.42).toFixed(2);
+        if (power > POWER_LIMIT_KW) {
+          s.room.powerState='violation'; s.room.power=0;
+          s.notifications.unshift({id:'N'+Date.now(),type:'power',level:'danger',title:'违规用电告警',text:`检测到疑似恶性负载（瞬时功率 ${power} kW，超过 ${POWER_LIMIT_KW} kW 阈值），平台已自动跳闸。`,time:'刚刚',read:false});
+          return;
+        }
+        const fee = +(usage * 0.538).toFixed(2);
         if (s.room.balance <= 0) {
           s.notifications.unshift({id:'N'+Date.now(),type:'balance',level:'danger',title:'余额不足，无法用电',text:'请先完成电费充值。',time:'刚刚',read:false});
           return;
         }
         s.room.todayKwh = +(s.room.todayKwh + usage).toFixed(1);
         s.room.monthKwh = +(s.room.monthKwh + usage).toFixed(1);
-        s.room.power = +(0.35 + usage * 0.42).toFixed(2);
+        s.room.power = power;
         s.room.balance = +Math.max(0, s.room.balance - fee).toFixed(2);
         let today = s.electricity.daily.find(item => item.date === '今日');
         if (!today) { today={date:'今日',kwh:0,fee:0}; s.electricity.daily.push(today); }
