@@ -1,7 +1,13 @@
-# 本地账号、学生与水电业务数据
-data/db.json
+# 本地账号、学生与水电业务数据（本地隔离库一律不提交）
+data/*.json
+!data/.gitkeep
 data/*.tmp
-data/*-test-db.json
+
+# 本地浏览器截图与测试产物（体积大，仅本地验证）
+test/screenshots/
+test-results/
+playwright-report/
+playwright/.cache/
 
 # Dependencies and runtime files
 node_modules/
